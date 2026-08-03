@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>IONSTORM — WebGPU Arcade</title>
+
+  <meta name="description" content="IONSTORM — a neon WebGPU arcade shooter with boss fights, SURGE overdrive, asteroids, procedural music, and roguelite hangar upgrades.">
+  <meta name="theme-color" content="#04070f">
+
+  <meta property="og:title" content="IONSTORM — WebGPU Arcade">
+  <meta property="og:description" content="Defend the Veil. Ride the Surge.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="og-image.png">
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <canvas id="view"></canvas>
+
+  <div id="fx-scan"></div>
+  <div id="fx-vig"></div>
+  <div id="fx-roll"></div>
+  <div id="fx-bloom"></div>
+  <div id="flash"></div>
+
+  <header id="hud" class="hidden">
+    <div class="hudbox panel">
+      <div class="lbl">SCORE</div>
+      <div class="val" id="hScore">0000000</div>
+    </div>
+
+    <div class="hudbox panel hudmid">
+      <div class="lbl">WAVE</div>
+      <div class="val" id="hWave">01</div>
+    </div>
+
+    <div class="hudright">
+      <div class="hudbox panel">
+        <div class="lbl">BEST</div>
+        <div class="val" id="hHi">0000000</div>
+      </div>
+
+      <div class="hudbox panel">
+        <div class="lbl">HULL</div>
+        <div id="hLives"></div>
+      </div>
+
+      <div class="panel hudbtn" id="sndBtn" title="Toggle sound">
+        <span class="dot"></span>
+        SND
+      </div>
+
+      <div class="panel hudbtn" id="pauseBtn" title="Pause">
+        ❚❚
+      </div>
+    </div>
+  </header>
+
+  <div id="combo" class="panel hidden">
+    <div class="row">
+      <span class="lbl">COMBO</span>
+      <span id="hMult">×1</span>
+    </div>
+    <div id="comboBar"><i></i></div>
+  </div>
+
+  <div id="surge" class="panel hidden">
+    <div class="row">
+      <span class="lbl">SURGE</span>
+      <span id="surgePct">0%</span>
+    </div>
+    <div id="surgeBar"><i></i></div>
+  </div>
+
+  <div id="boss" class="panel hidden">
+    <div class="row">
+      <span id="bossName">DREADNOUGHT</span>
+      <span id="bossPhase">PHASE 1</span>
+    </div>
+    <div id="bossBar"><i></i></div>
+  </div>
+
+  <div id="chips" class="hidden">
+    <div class="chip tri panel hidden" id="cTri">
+      TRIPLE<span class="bar"><i></i></span>
+    </div>
+
+    <div class="chip panel hidden" id="cRap">
+      RAPID<span class="bar"><i></i></span>
+    </div>
+
+    <div class="chip mis panel hidden" id="cMis">
+      SEEKER<span class="bar"><i></i></span>
+    </div>
+
+    <div class="chip shd panel hidden" id="cShd">
+      SHIELD ◈<span id="cShdN">1</span>
+    </div>
+  </div>
+
+  <div id="fps"></div>
+  <div id="banner"></div>
+  <div id="toasts"></div>
+
+  <!-- TITLE SCREEN -->
+  <section id="ovTitle" class="ov on">
+    <div class="badge panel" id="badge">
+      <span class="pulse"></span>
+      <span id="badgeTxt">WEBGPU // COMPUTE-DRIVEN</span>
+    </div>
+
+    <h1 class="logo">ION<b>STORM</b></h1>
+    <p class="tag">DEFEND THE VEIL · RIDE THE SURGE</p>
+
+    <div class="ctrls panel">
+      <span class="k">MOVE</span>
+      <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd> / POINTER</span>
+
+      <span class="k">CANNONS</span>
+      <span>AUTO-FIRE</span>
+
+      <span class="k">SURGE</span>
+      <span><kbd>SPACE</kbd> (WHEN FULL)</span>
+
+      <span class="k">HANGAR</span>
+      <span><kbd>H</kbd></span>
+
+      <span class="k">PAUSE · SOUND</span>
+      <span><kbd>P</kbd> · <kbd>M</kbd></span>
+
+      <span class="k">RESTART</span>
+      <span><kbd>R</kbd></span>
+    </div>
+
+    <div class="titleBtns">
+      <div class="start blink" id="startPrompt">
+        ▸ PRESS ANY KEY TO LAUNCH · H FOR HANGAR
+      </div>
+
+      <button class="cham" id="hangarBtn">
+        HANGAR
+      </button>
+    </div>
+
+    <div class="meta">
+      <span id="gpuinfo">INITIALIZING RENDERER…</span>
+      &nbsp;·&nbsp;
+      HI-SCORE <b id="tHi">0000000</b>
+      &nbsp;·&nbsp;
+      SCRAP <b id="tScrap">0</b>
+      &nbsp;·&nbsp;
+      SHIP <b id="tShip">VANGUARD</b>
+    </div>
+  </section>
+
+  <!-- HANGAR / META PROGRESSION -->
+  <section id="ovHangar" class="ov">
+    <div class="panel wrap">
+      <div class="hangarTop panel">
+        <span class="lbl">HANGAR // META PROGRESSION</span>
+        <span class="lbl">SCRAP <b id="hScrap">0</b></span>
+      </div>
+
+      <div class="lbl">SHIP SELECT</div>
+      <div id="shipGrid"></div>
+
+      <div class="lbl">UPGRADES</div>
+      <div id="upGrid"></div>
+
+      <div class="lbl">ACHIEVEMENTS</div>
+      <div id="achGrid"></div>
+
+      <div class="hangarBtns">
+        <button class="cham" id="hangarBackBtn">BACK</button>
+        <button class="cham" id="hangarLaunchBtn">LAUNCH</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- PAUSE -->
+  <section id="ovPause" class="ov">
+    <h2 class="big hold">STANDBY</h2>
+    <p class="hint">
+      <kbd>P</kbd> RESUME
+      &nbsp;·&nbsp;
+      <kbd>M</kbd> SOUND
+      &nbsp;·&nbsp;
+      <kbd>R</kbd> RESTART
+    </p>
+  </section>
+
+  <!-- GAME OVER -->
+  <section id="ovOver" class="ov">
+    <h2 class="big lose">SIGNAL LOST</h2>
+
+    <div id="newRec" class="hidden">★ NEW RECORD ★</div>
+
+    <div class="stats panel">
+      <span class="lbl">FINAL SCORE</span>
+      <span class="val" id="sScore">0</span>
+
+      <span class="lbl">BEST</span>
+      <span class="val" id="sBest">0</span>
+
+      <span class="lbl">WAVE REACHED</span>
+      <span class="val" id="sWave">1</span>
+
+      <span class="lbl">KILLS</span>
+      <span class="val" id="sKills">0</span>
+
+      <span class="lbl">MAX COMBO</span>
+      <span class="val" id="sCombo">0</span>
+
+      <span class="lbl">SCRAP EARNED</span>
+      <span class="val" id="sScrap">0</span>
+
+      <span class="lbl">TOTAL SCRAP</span>
+      <span class="val" id="sTotalScrap">0</span>
+    </div>
+
+    <div class="start blink">
+      ▸ ENTER RELAUNCH · H HANGAR
+    </div>
+  </section>
+
+  <!-- FATAL ERROR -->
+  <section id="ovFatal" class="ov">
+    <div class="panel fatalBox">
+      <h2 class="big lose fatalTitle">SYSTEM FAULT</h2>
+      <p class="why" id="fatalWhy">—</p>
+      <p>
+        If this mentions WebGPU/WebGL2, enable hardware acceleration,
+        update GPU drivers, or use a modern browser such as
+        Chrome, Edge, Firefox, or Safari with WebGPU/WebGL2 support.
+      </p>
+      <button class="cham" onclick="location.reload()">RETRY</button>
+    </div>
+  </section>
+
+  <noscript>
+    <div class="noscript">
+      JavaScript required.
+    </div>
+  </noscript>
+
+  <script src="game.js"></script>
+  <script src="profile.js"></script>
+</body>
+</html>

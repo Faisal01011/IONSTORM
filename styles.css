@@ -1,0 +1,1132 @@
+/* =========================================================================
+   IONSTORM — expanded production styles
+   ========================================================================= */
+
+:root {
+  --bg: #04070f;
+  --ink: #e8f6ff;
+  --dim: #8fb4c9;
+
+  --cyan: #5ff2ff;
+  --cyan-soft: rgba(95, 242, 255, .35);
+
+  --amber: #ffb454;
+  --ember: #ff5c47;
+
+  --panel: rgba(7, 16, 28, .62);
+  --line: rgba(95, 220, 255, .28);
+
+  --surge: #ff4dff;
+  --surge-soft: rgba(255, 77, 255, .45);
+
+  --cham: polygon(
+    0 0,
+    calc(100% - 14px) 0,
+    100% 14px,
+    100% 100%,
+    14px 100%,
+    0 calc(100% - 14px)
+  );
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+body {
+  font-family: 'Rajdhani', system-ui, sans-serif;
+  color: var(--ink);
+  user-select: none;
+  -webkit-user-select: none;
+  overscroll-behavior: none;
+}
+
+#view {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: #04070f;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+/* =========================================================================
+   CRT / post FX dressing
+   ========================================================================= */
+
+#fx-scan {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+  opacity: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, .16) 0 1px,
+    transparent 1px 3px
+  );
+}
+
+#fx-vig {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+  background: radial-gradient(
+    ellipse at 50% 46%,
+    transparent 52%,
+    rgba(2, 6, 12, .62) 100%
+  );
+}
+
+#fx-roll {
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: 140px;
+  pointer-events: none;
+  z-index: 40;
+  opacity: .05;
+  background: linear-gradient(180deg, transparent, #9feaff, transparent);
+  animation: roll 9s linear infinite;
+}
+
+@keyframes roll {
+  from {
+    transform: translateY(-160px);
+  }
+  to {
+    transform: translateY(110vh);
+  }
+}
+
+#fx-bloom {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 39;
+  opacity: 0;
+  mix-blend-mode: screen;
+  /* REMOVED: filter: blur(18px); <- This was destroying FPS */
+  transition: opacity .12s;
+  
+  /* Made the gradient naturally softer to compensate for lack of blur */
+  background: radial-gradient(
+    ellipse at 50% 40%,
+    rgba(120, 240, 255, .50),
+    rgba(255, 80, 255, .25) 40%,
+    transparent 70%
+  );
+}
+
+#flash {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 41;
+  opacity: 0;
+  transition: opacity .5s ease-out;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 70, 50, .4),
+    rgba(255, 70, 50, .12) 60%,
+    transparent
+  );
+}
+
+/* =========================================================================
+   Shared chrome
+   ========================================================================= */
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  clip-path: var(--cham);
+  backdrop-filter: blur(5px);
+}
+
+.lbl {
+  font-size: .62rem;
+  letter-spacing: .34em;
+  color: var(--dim);
+  font-weight: 600;
+}
+
+.val {
+  font-family: 'Orbitron';
+  font-weight: 700;
+  font-size: clamp(1rem, 2.4vh, 1.4rem);
+  color: var(--ink);
+  text-shadow: 0 0 12px var(--cyan-soft);
+}
+
+kbd {
+  display: inline-block;
+  min-width: 1.7em;
+  text-align: center;
+  padding: .28em .5em;
+  margin: 0 .12em;
+  font-family: 'Orbitron';
+  font-size: .66rem;
+  font-weight: 700;
+  color: var(--cyan);
+  background: rgba(16, 38, 58, .75);
+  border: 1px solid rgba(120, 220, 255, .4);
+  clip-path: polygon(
+    4px 0,
+    100% 0,
+    100% calc(100% - 4px),
+    calc(100% - 4px) 100%,
+    0 100%,
+    0 4px
+  );
+  box-shadow: inset 0 -2px 0 rgba(95, 242, 255, .18);
+}
+
+button.cham {
+  font-family: 'Orbitron';
+  font-weight: 700;
+  letter-spacing: .18em;
+  font-size: .8rem;
+  color: var(--bg);
+  background: linear-gradient(180deg, #8ff6ff, #3ec9de);
+  border: 0;
+  padding: .85em 2.2em;
+  cursor: pointer;
+  clip-path: var(--cham);
+  transition: transform .15s, filter .15s, box-shadow .15s;
+}
+
+button.cham:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.12);
+  box-shadow: 0 6px 28px rgba(95, 242, 255, .35);
+}
+
+button.cham:active {
+  transform: translateY(0);
+}
+
+button.cham:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 3px;
+}
+
+.blink {
+  animation: blink 1.15s steps(2, end) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: .15;
+  }
+}
+
+/* =========================================================================
+   HUD
+   ========================================================================= */
+
+#hud {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 14px 16px;
+  gap: 12px;
+  pointer-events: none;
+  transition: opacity .4s;
+}
+
+#hud.hidden,
+#combo.hidden,
+#chips.hidden {
+  opacity: 0;
+}
+
+.hudbox {
+  padding: 8px 16px 9px;
+  min-width: 132px;
+}
+
+.hudmid {
+  text-align: center;
+}
+
+.hudright {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+#hLives {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  padding-top: 3px;
+  flex-wrap: wrap;
+  max-width: 130px;
+  justify-content: flex-end;
+}
+
+.pip {
+  width: 13px;
+  height: 15px;
+  background: linear-gradient(180deg, #aef6ff, #2ea8c9);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  filter: drop-shadow(0 0 5px rgba(95, 242, 255, .8));
+  transition: opacity .3s;
+}
+
+.pip.off {
+  opacity: .14;
+  filter: none;
+}
+
+.hudbtn {
+  pointer-events: auto;
+  cursor: pointer;
+  padding: 8px 14px;
+  font-family: 'Orbitron';
+  font-size: .62rem;
+  letter-spacing: .2em;
+  color: var(--dim);
+  display: flex;
+  align-items: center;
+  transition: color .2s;
+}
+
+.hudbtn:hover {
+  color: var(--cyan);
+}
+
+#sndBtn .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cyan);
+  margin-right: 8px;
+  box-shadow: 0 0 8px var(--cyan);
+}
+
+#sndBtn.mut .dot {
+  background: #3a4a58;
+  box-shadow: none;
+}
+
+/* =========================================================================
+   Combo / Surge / Boss / Chips
+   ========================================================================= */
+
+#combo {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 50;
+  padding: 9px 16px 11px;
+  width: 210px;
+  pointer-events: none;
+  transition: opacity .4s;
+}
+
+#combo .row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+#hMult {
+  font-family: 'Orbitron';
+  font-weight: 900;
+  color: var(--amber);
+  font-size: 1.05rem;
+  text-shadow: 0 0 12px rgba(255, 180, 84, .5);
+}
+
+#comboBar {
+  height: 5px;
+  margin-top: 6px;
+  background: rgba(95, 242, 255, .12);
+  overflow: hidden;
+}
+
+#comboBar i {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--cyan), var(--amber));
+  transition: width .12s;
+}
+
+#surge {
+  position: fixed;
+  right: 16px;
+  top: 80px;
+  z-index: 50;
+  padding: 9px 16px 11px;
+  width: 180px;
+  pointer-events: none;
+  transition: opacity .4s;
+}
+
+#surge.hidden {
+  opacity: 0;
+}
+
+#surge .row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+#surge .lbl {
+  color: var(--surge);
+}
+
+#surgeBar {
+  height: 6px;
+  margin-top: 6px;
+  background: rgba(255, 77, 255, .12);
+  overflow: hidden;
+  border: 1px solid rgba(255, 77, 255, .3);
+}
+
+#surgeBar i {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #ff4dff, #ff9dff);
+  transition: width .15s;
+  box-shadow: 0 0 12px var(--surge-soft);
+}
+
+#surge.active #surgeBar {
+  border-color: var(--surge);
+  box-shadow: 0 0 20px var(--surge-soft);
+}
+
+#surge.active .lbl {
+  animation: surgePulse .5s ease infinite;
+}
+
+@keyframes surgePulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .6;
+  }
+}
+
+#boss {
+  position: fixed;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  width: min(620px, 76vw);
+  padding: 8px 16px 10px;
+  pointer-events: none;
+  transition: opacity .35s;
+}
+
+#boss.hidden {
+  opacity: 0;
+}
+
+#boss .row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+#bossName {
+  font-family: 'Orbitron';
+  font-size: .62rem;
+  letter-spacing: .24em;
+  color: #ff8f7d;
+  text-shadow: 0 0 10px rgba(255, 92, 71, .4);
+}
+
+#bossPhase {
+  font-family: 'Orbitron';
+  font-size: .56rem;
+  letter-spacing: .24em;
+  color: rgba(255, 180, 84, .85);
+}
+
+#bossBar {
+  height: 8px;
+  margin-top: 6px;
+  background: rgba(255, 92, 71, .12);
+  border: 1px solid rgba(255, 92, 71, .35);
+  overflow: hidden;
+}
+
+#bossBar i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #ff5c47, #ffb454, #ff4dff);
+  box-shadow: 0 0 14px rgba(255, 92, 71, .5);
+  transition: width .12s;
+}
+
+#chips {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+  pointer-events: none;
+  transition: opacity .4s;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  font-family: 'Orbitron';
+  font-size: .66rem;
+  letter-spacing: .16em;
+}
+
+.chip .bar {
+  width: 74px;
+  height: 4px;
+  background: rgba(255, 180, 84, .15);
+}
+
+.chip .bar i {
+  display: block;
+  height: 100%;
+  background: var(--amber);
+  box-shadow: 0 0 8px rgba(255, 180, 84, .6);
+}
+
+.chip.tri {
+  color: var(--cyan);
+}
+
+.chip.tri .bar i {
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+}
+
+.chip.shd {
+  color: #aef6ff;
+}
+
+.chip.mis {
+  color: #ff8f7d;
+}
+
+.chip.mis .bar i {
+  background: var(--ember);
+  box-shadow: 0 0 8px var(--ember);
+}
+
+.chip.hidden {
+  display: none;
+}
+
+#fps {
+  position: fixed;
+  left: 16px;
+  bottom: 0;
+  z-index: 50;
+  padding: 4px 16px 10px;
+  font-family: 'Orbitron';
+  font-size: .58rem;
+  letter-spacing: .2em;
+  color: rgba(143, 180, 201, .55);
+  pointer-events: none;
+}
+
+/* =========================================================================
+   Banner / Toasts
+   ========================================================================= */
+
+#banner {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  opacity: 0;
+  font-family: 'Orbitron';
+  font-weight: 900;
+  font-style: italic;
+  font-size: clamp(2rem, 7vw, 4.6rem);
+  color: var(--amber);
+  letter-spacing: .32em;
+  text-shadow:
+    0 0 22px rgba(255, 150, 60, .55),
+    0 0 70px rgba(255, 120, 40, .3);
+}
+
+#banner.show {
+  animation: bannerIn 1.9s cubic-bezier(.2, .7, .2, 1) forwards;
+}
+
+@keyframes bannerIn {
+  0% {
+    opacity: 0;
+    transform: scale(1.55);
+    letter-spacing: .85em;
+  }
+
+  16% {
+    opacity: 1;
+  }
+
+  70% {
+    opacity: 1;
+    transform: scale(1);
+    letter-spacing: .32em;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(.97);
+  }
+}
+
+#toasts {
+  position: fixed;
+  left: 50%;
+  bottom: 13vh;
+  z-index: 55;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  padding: 6px 20px;
+  font-family: 'Orbitron';
+  font-size: .7rem;
+  letter-spacing: .22em;
+  color: var(--cyan);
+  background: rgba(8, 20, 32, .8);
+  border: 1px solid var(--line);
+  clip-path: var(--cham);
+  animation: toastUp 1.7s ease forwards;
+}
+
+.toast.gold {
+  color: var(--amber);
+  border-color: rgba(255, 180, 84, .4);
+}
+
+.toast.red {
+  color: #ff8f7d;
+  border-color: rgba(255, 92, 71, .4);
+}
+
+.toast.surge {
+  color: var(--surge);
+  border-color: rgba(255, 77, 255, .4);
+}
+
+@keyframes toastUp {
+  0% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  12% {
+    opacity: 1;
+    transform: none;
+  }
+
+  78% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+}
+
+/* =========================================================================
+   Overlays
+   ========================================================================= */
+
+.ov {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(10px, 2.6vh, 26px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .45s, visibility .45s;
+  background: radial-gradient(
+    ellipse at 50% 40%,
+    rgba(4, 10, 20, .3),
+    rgba(3, 6, 14, .78)
+  );
+}
+
+.ov.on {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.badge {
+  font-family: 'Orbitron';
+  font-size: .6rem;
+  letter-spacing: .42em;
+  color: var(--cyan);
+  padding: .7em 1.6em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.badge .pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 10px var(--cyan);
+  animation: blink 1.6s ease infinite;
+}
+
+.badge.warn {
+  color: var(--amber);
+}
+
+.badge.warn .pulse {
+  background: var(--amber);
+  box-shadow: 0 0 10px var(--amber);
+}
+
+.logo {
+  font-family: 'Orbitron';
+  font-weight: 900;
+  font-style: italic;
+  line-height: .92;
+  letter-spacing: .02em;
+  font-size: clamp(3.2rem, 13vw, 8rem);
+  color: transparent;
+  -webkit-text-stroke: 2px #67e8ff;
+  text-stroke: 2px #67e8ff;
+  text-shadow: 0 0 38px rgba(90, 230, 255, .3);
+  text-align: center;
+}
+
+.logo b {
+  color: var(--amber);
+  -webkit-text-stroke: 0;
+  text-shadow:
+    0 0 20px rgba(255, 150, 60, .55),
+    0 0 70px rgba(255, 120, 40, .3);
+}
+
+.tag {
+  letter-spacing: .5em;
+  font-size: clamp(.62rem, 1.6vw, .82rem);
+  color: var(--dim);
+  font-weight: 600;
+  text-align: center;
+}
+
+.ctrls {
+  padding: clamp(12px, 2.4vh, 22px) clamp(18px, 3vw, 34px);
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: .65em 1.6em;
+  align-items: center;
+  font-size: .86rem;
+  letter-spacing: .14em;
+  color: var(--dim);
+  font-weight: 600;
+}
+
+.ctrls .k {
+  text-align: right;
+}
+
+.start {
+  font-family: 'Orbitron';
+  font-weight: 700;
+  letter-spacing: .3em;
+  font-size: clamp(.72rem, 1.8vw, .95rem);
+  color: var(--amber);
+  text-shadow: 0 0 16px rgba(255, 180, 84, .5);
+  cursor: pointer;
+}
+
+.meta {
+  font-size: .68rem;
+  letter-spacing: .24em;
+  color: rgba(143, 180, 201, .6);
+  text-align: center;
+  font-weight: 600;
+}
+
+.meta b {
+  color: var(--cyan);
+  font-family: 'Orbitron';
+}
+
+h2.big {
+  font-family: 'Orbitron';
+  font-weight: 900;
+  font-style: italic;
+  font-size: clamp(1.9rem, 6vw, 3.6rem);
+  letter-spacing: .1em;
+}
+
+h2.lose {
+  color: var(--ember);
+  text-shadow: 0 0 30px rgba(255, 92, 71, .5);
+}
+
+h2.hold {
+  color: var(--cyan);
+  text-shadow: 0 0 30px rgba(95, 242, 255, .4);
+}
+
+.stats {
+  padding: 18px 34px;
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: .5em 2.4em;
+  font-size: .95rem;
+  letter-spacing: .18em;
+}
+
+.stats .lbl {
+  text-align: right;
+  padding-top: .2em;
+}
+
+.stats .val {
+  font-size: 1.25rem;
+}
+
+#newRec {
+  font-family: 'Orbitron';
+  font-weight: 900;
+  letter-spacing: .3em;
+  color: var(--amber);
+  text-shadow: 0 0 18px rgba(255, 180, 84, .6);
+}
+
+#newRec.hidden {
+  display: none;
+}
+
+.hint {
+  font-size: .72rem;
+  letter-spacing: .28em;
+  color: rgba(143, 180, 201, .65);
+  font-weight: 600;
+}
+
+/* =========================================================================
+   Fatal screen
+   ========================================================================= */
+
+#ovFatal .panel {
+  padding: 28px 36px;
+  max-width: 560px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+#ovFatal p {
+  color: var(--dim);
+  line-height: 1.55;
+  font-size: .95rem;
+  letter-spacing: .05em;
+}
+
+#ovFatal .why {
+  font-family: 'Orbitron';
+  color: var(--ember);
+  font-size: .7rem;
+  letter-spacing: .2em;
+  word-break: break-word;
+}
+
+.fatalTitle {
+  font-size: 1.6rem;
+}
+
+/* =========================================================================
+   Title buttons
+   ========================================================================= */
+
+.titleBtns {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* =========================================================================
+   Hangar
+   ========================================================================= */
+
+#ovHangar .wrap {
+  width: min(940px, 94vw);
+  max-height: 88vh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+}
+
+.hangarTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+}
+
+#hScrap {
+  font-family: 'Orbitron';
+  color: var(--amber);
+  font-size: 1rem;
+  text-shadow: 0 0 10px rgba(255, 180, 84, .35);
+}
+
+#shipGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.shipCard {
+  padding: 12px;
+  cursor: pointer;
+  transition:
+    transform .12s,
+    box-shadow .12s,
+    border-color .12s;
+  border: 1px solid transparent;
+}
+
+.shipCard:hover {
+  transform: translateY(-2px);
+}
+
+.shipCard.sel {
+  border-color: var(--cyan);
+  box-shadow: 0 0 18px rgba(95, 242, 255, .18);
+}
+
+.shipName {
+  font-family: 'Orbitron';
+  font-weight: 700;
+  letter-spacing: .12em;
+  font-size: .82rem;
+}
+
+.shipDesc {
+  font-size: .72rem;
+  color: var(--dim);
+  letter-spacing: .08em;
+  margin: 6px 0 10px;
+}
+
+.shipStats {
+  font-family: 'Orbitron';
+  font-size: .6rem;
+  color: var(--dim);
+  display: grid;
+  gap: 4px;
+  letter-spacing: .08em;
+}
+
+#upGrid,
+#achGrid {
+  display: grid;
+  gap: 8px;
+}
+
+#achGrid {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.upRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+}
+
+.upName {
+  font-family: 'Orbitron';
+  font-size: .68rem;
+  letter-spacing: .12em;
+}
+
+.upDesc {
+  font-size: .72rem;
+  color: var(--dim);
+  letter-spacing: .05em;
+  margin-top: 3px;
+}
+
+.upLvl {
+  font-family: 'Orbitron';
+  font-size: .6rem;
+  color: var(--cyan);
+  letter-spacing: .12em;
+  white-space: nowrap;
+}
+
+button.buy {
+  font-family: 'Orbitron';
+  font-size: .62rem;
+  letter-spacing: .1em;
+  padding: .55em 1em;
+  border: 1px solid var(--line);
+  background: rgba(16, 38, 58, .7);
+  color: var(--cyan);
+  cursor: pointer;
+  clip-path: var(--cham);
+  white-space: nowrap;
+}
+
+button.buy:disabled {
+  opacity: .35;
+  cursor: default;
+}
+
+button.buy.max {
+  color: var(--amber);
+  border-color: rgba(255, 180, 84, .4);
+}
+
+.ach {
+  padding: 10px;
+  opacity: .32;
+}
+
+.ach.unlocked {
+  opacity: 1;
+  border-color: rgba(255, 180, 84, .35);
+}
+
+.achName {
+  font-family: 'Orbitron';
+  font-size: .62rem;
+  letter-spacing: .12em;
+  color: var(--amber);
+}
+
+.achDesc {
+  font-size: .7rem;
+  color: var(--dim);
+  margin-top: 4px;
+  letter-spacing: .05em;
+}
+
+.hangarBtns {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+/* =========================================================================
+   Misc
+   ========================================================================= */
+
+.noscript {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #8fb4c9;
+  font-family: sans-serif;
+}
+
+/* =========================================================================
+   Small screens
+   ========================================================================= */
+
+@media (max-width: 720px) {
+  .hudbox {
+    min-width: 96px;
+    padding: 6px 10px;
+  }
+
+  #hud {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  #boss {
+    top: 62px;
+    width: min(92vw, 520px);
+  }
+
+  #surge {
+    top: auto;
+    bottom: 104px;
+    right: 12px;
+    width: 150px;
+  }
+
+  #combo {
+    left: 12px;
+    bottom: 12px;
+    width: 170px;
+  }
+
+  #chips {
+    right: 12px;
+    bottom: 12px;
+  }
+
+  .ctrls {
+    font-size: .74rem;
+    gap: .55em 1em;
+  }
+
+  #ovHangar .wrap {
+    padding: 12px;
+  }
+}
