@@ -207,6 +207,73 @@ const UPGRADES = {
   }
 };
 
+/* Temporary run upgrades. These are deliberately separate from Hangar
+   upgrades: they make the current deployment stronger, then disappear when
+   the pilot launches a new run. */
+const RUN_UPGRADES = {
+  overclock: {
+    name: 'OVERCLOCK',
+    category: 'WEAPON SYSTEM',
+    desc: 'Cannon cooldown reduced by 14%.',
+    accent: 'cyan',
+    apply() {
+      G.player.rateMult *= 0.86;
+    }
+  },
+
+  reinforcedHull: {
+    name: 'REINFORCED HULL',
+    category: 'DEFENSE MATRIX',
+    desc: '+1 maximum hull and repair one point.',
+    accent: 'amber',
+    apply() {
+      G.maxLives++;
+      G.lives = Math.min(G.maxLives, G.lives + 1);
+      drawLives();
+    }
+  },
+
+  ionMagnet: {
+    name: 'ION MAGNET',
+    category: 'SALVAGE SYSTEM',
+    desc: 'Pickup attraction radius increased by 35%.',
+    accent: 'teal',
+    apply() {
+      G.magnetR *= 1.35;
+    }
+  },
+
+  surgeCore: {
+    name: 'SURGE CORE',
+    category: 'OVERDRIVE SYSTEM',
+    desc: 'SURGE duration increased by 1.25 seconds.',
+    accent: 'surge',
+    apply() {
+      G.surgeDuration += 1.25;
+    }
+  },
+
+  criticalSystems: {
+    name: 'CRITICAL SYSTEMS',
+    category: 'TARGETING ARRAY',
+    desc: '12% chance for cannons and missiles to deal double damage.',
+    accent: 'red',
+    apply() {
+      G.critChance = Math.min(0.48, G.critChance + 0.12);
+    }
+  },
+
+  comboShield: {
+    name: 'COMBO SHIELD',
+    category: 'COMBAT PROTOCOL',
+    desc: 'The next hull hit preserves your combo multiplier.',
+    accent: 'violet',
+    apply() {
+      G.comboGuard++;
+    }
+  }
+};
+
 function getUpgradeLevel(id) {
   return META.upgrades[id] || 0;
 }
@@ -394,6 +461,14 @@ const G = {
   mult: 1,
   maxCombo: 0,
 
+  /* In-run progression */
+  runLevel: 1,
+  runXp: 0,
+  runXpNext: 220,
+  upgradeQueue: 0,
+  upgradeChoices: [],
+  runUpgrades: {},
+
   shake: 0,
   offX: 0,
   offY: 0,
@@ -418,6 +493,9 @@ const G = {
   surgeT: 0,
   surgeCooldown: 0,
   surgeMult: 1,
+  surgeDuration: 5,
+  critChance: 0,
+  comboGuard: 0,
 
   /* Impact feel */
   hitStop: 0,
@@ -3599,7 +3677,7 @@ function setChromeVisible(target, on) {
 }
 
 function setGameControlsInteractive(on) {
-  ['hud', 'surge'].forEach(id => {
+  ['hud', 'levelHud', 'surge'].forEach(id => {
     const el = $(id);
     if (el) el.inert = !on;
   });
@@ -3680,6 +3758,166 @@ function updateTitleMeta() {
 }
 
 /* =========================================================================
+   In-run upgrade choices
+   ========================================================================= */
+
+function nextRunLevelXp(level) {
+  return 220 + Math.max(0, Math.floor(level) - 1) * 90;
+}
+
+function runXpValue(type) {
+  return type === 'boss' ? 180 :
+    type === 'tank' ? 62 :
+    type === 'striker' ? 32 :
+    type === 'asteroid' ? 24 :
+    18;
+}
+
+function pickRunUpgradeChoices() {
+  const ids = Object.keys(RUN_UPGRADES);
+  const choices = [];
+
+  while (choices.length < Math.min(3, ids.length)) {
+    const id = ids[(Math.random() * ids.length) | 0];
+
+    if (!choices.includes(id)) {
+      choices.push(id);
+    }
+  }
+
+  return choices;
+}
+
+function applyRunUpgrade(id) {
+  const upgrade = RUN_UPGRADES[id];
+
+  if (!upgrade) return false;
+
+  G.runUpgrades[id] = (G.runUpgrades[id] || 0) + 1;
+  upgrade.apply();
+  toast('SYSTEM INSTALLED — ' + upgrade.name, 'gold');
+
+  return true;
+}
+
+function renderUpgradeChoices() {
+  const cards = $('upgradeCards');
+
+  if (!cards) return;
+
+  cards.innerHTML = '';
+
+  G.upgradeChoices.forEach((id, index) => {
+    const upgrade = RUN_UPGRADES[id];
+
+    if (!upgrade) return;
+
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'upgradeCard panel ' + upgrade.accent;
+    card.setAttribute(
+      'aria-label',
+      `${upgrade.name}: ${upgrade.desc}`
+    );
+
+    card.innerHTML = `
+      <span class="upgradeCardTop">
+        <span class="upgradeCardIndex">SYSTEM 0${index + 1}</span>
+        <span class="upgradeCardIcon" aria-hidden="true">◈</span>
+      </span>
+      <span class="upgradeCardCategory">${upgrade.category}</span>
+      <span class="upgradeCardName">${upgrade.name}</span>
+      <span class="upgradeCardDesc">${upgrade.desc}</span>
+      <span class="upgradeCardPrompt">SELECT SYSTEM</span>
+    `;
+
+    card.addEventListener('click', () => {
+      chooseRunUpgrade(id);
+    });
+
+    cards.appendChild(card);
+  });
+
+  setTxt($('upgradeLevelValue'), String(G.runLevel).padStart(2, '0'));
+  setTxt($('upgradeXpValue'), `${Math.floor(G.runXp)} / ${G.runXpNext} XP`);
+}
+
+function presentUpgradeChoice() {
+  G.state = 'upgrade';
+  G.upgradeChoices = pickRunUpgradeChoices();
+
+  show($('ovUpgrade'), true);
+  setGameControlsInteractive(false);
+  renderUpgradeChoices();
+
+  if (AU.ctx && AU.ctx.state !== 'suspended') {
+    AU.ctx.suspend();
+  }
+
+  const cards = $('upgradeCards');
+  const first = cards && cards.firstElementChild;
+
+  if (first && typeof first.focus === 'function') {
+    first.focus();
+  }
+}
+
+function openUpgradeChoice() {
+  if (G.state !== 'playing') return;
+
+  AU.uiConfirm();
+  toast('LEVEL ' + String(G.runLevel).padStart(2, '0') + ' REACHED', 'gold');
+  presentUpgradeChoice();
+}
+
+function closeUpgradeChoice() {
+  G.upgradeChoices = [];
+  show($('ovUpgrade'), false);
+  setGameControlsInteractive(true);
+  G.state = 'playing';
+
+  if (AU.ctx) {
+    AU.ctx.resume();
+  }
+}
+
+function chooseRunUpgrade(id) {
+  if (G.state !== 'upgrade' || !G.upgradeChoices.includes(id)) return false;
+
+  AU.ensure();
+  applyRunUpgrade(id);
+  G.upgradeQueue = Math.max(0, G.upgradeQueue - 1);
+
+  if (G.upgradeQueue > 0) {
+    presentUpgradeChoice();
+  } else {
+    closeUpgradeChoice();
+  }
+
+  AU.uiConfirm();
+  return true;
+}
+
+function awardRunXp(amount) {
+  if (G.state !== 'playing' || !Number.isFinite(amount) || amount <= 0) {
+    return;
+  }
+
+  G.runXp += amount;
+
+  while (G.runXp >= G.runXpNext) {
+    G.runXp -= G.runXpNext;
+    G.runLevel++;
+    G.runXpNext = nextRunLevelXp(G.runLevel);
+    G.upgradeQueue++;
+  }
+
+  if (G.upgradeQueue > 0) {
+    openUpgradeChoice();
+  }
+}
+
+/* =========================================================================
    Hangar UI
    ========================================================================= */
 
@@ -3690,9 +3928,10 @@ function openHangar() {
 
   show($('ovTitle'), false);
   show($('ovOver'), false);
+  show($('ovUpgrade'), false);
   show($('ovHangar'), true);
 
-  ['hud', 'combo', 'chips', 'surge', 'boss'].forEach(id => {
+  ['hud', 'levelHud', 'combo', 'chips', 'surge', 'boss'].forEach(id => {
     setChromeVisible(id, false);
   });
 
@@ -3930,6 +4169,13 @@ function resetRun() {
     mult: 1,
     maxCombo: 0,
 
+    runLevel: 1,
+    runXp: 0,
+    runXpNext: nextRunLevelXp(1),
+    upgradeQueue: 0,
+    upgradeChoices: [],
+    runUpgrades: {},
+
     shake: 0,
     timeScale: 1,
     slowT: 0,
@@ -3941,6 +4187,9 @@ function resetRun() {
     surgeActive: false,
     surgeT: 0,
     surgeCooldown: 0,
+    surgeDuration: 5,
+    critChance: 0,
+    comboGuard: 0,
 
     hitStop: 0,
     aberration: 0
@@ -3990,9 +4239,10 @@ function resetRun() {
   show($('ovTitle'), false);
   show($('ovOver'), false);
   show($('ovPause'), false);
+  show($('ovUpgrade'), false);
   show($('ovHangar'), false);
 
-  ['hud', 'combo', 'chips', 'surge'].forEach(id => {
+  ['hud', 'levelHud', 'combo', 'chips', 'surge'].forEach(id => {
     setChromeVisible(id, true);
   });
 
@@ -4171,6 +4421,12 @@ function enemyIsTargetable(e) {
   return e.y >= Math.max(e.r || 0, 0);
 }
 
+function projectileDamage(base) {
+  return G.critChance > 0 && Math.random() < G.critChance
+    ? base * 2
+    : base;
+}
+
 /* =========================================================================
    SURGE
    ========================================================================= */
@@ -4179,7 +4435,7 @@ function activateSurge() {
   if (G.surge < 100 || G.surgeActive || G.surgeCooldown > 0) return;
 
   G.surgeActive = true;
-  G.surgeT = 5.0;
+  G.surgeT = G.surgeDuration;
   G.surge = 0;
   G.surgeCooldown = 8.0;
 
@@ -4513,6 +4769,7 @@ function killEnemy(e, i) {
     G.surge = Math.min(100, G.surge + 60 * G.surgeMult);
     bossDeath(e);
     G.dropDry = 0;
+    awardRunXp(runXpValue(e.type));
     return;
   }
 
@@ -4566,6 +4823,8 @@ function killEnemy(e, i) {
       a: 0.8
     });
   }
+
+  awardRunXp(runXpValue(e.type));
 }
 
 function hitPlayer() {
@@ -4604,8 +4863,15 @@ function hitPlayer() {
   }
 
   G.lives--;
-  G.combo = 0;
-  G.mult = 1;
+
+  if (G.comboGuard > 0) {
+    G.comboGuard--;
+    G.comboT = 4;
+    toast('COMBO SHIELD HELD', 'gold');
+  } else {
+    G.combo = 0;
+    G.mult = 1;
+  }
 
   explosion(p.x, p.y, 1.6);
 
@@ -4661,6 +4927,7 @@ function gameOver() {
   updateTitleMeta();
 
   AU.over();
+  show($('ovUpgrade'), false);
   show($('ovOver'), true);
   setGameControlsInteractive(false);
 
@@ -4948,7 +5215,7 @@ function updateWorld(dt) {
           enemyIsTargetable(e) &&
           Math.hypot(e.x - m.x, e.y - m.y) < e.r + 10
         ) {
-          e.hp -= 3;
+          e.hp -= projectileDamage(3);
           e.flash = 1;
           dead = true;
 
@@ -4975,7 +5242,14 @@ function updateWorld(dt) {
 
           AU.boom(0.6, m.x);
 
-          if (e.hp <= 0) killEnemy(e, j);
+          if (e.hp <= 0) {
+            killEnemy(e, j);
+
+            if (G.state !== 'playing') {
+              G.missiles.splice(i, 1);
+              return;
+            }
+          }
 
           break;
         }
@@ -5191,7 +5465,7 @@ function updateWorld(dt) {
           G.bullets.splice(i, 1);
           hit = true;
 
-          e.hp--;
+          e.hp -= projectileDamage(1);
           e.flash = 1;
 
           burst(b.x, b.y, {
@@ -5204,7 +5478,11 @@ function updateWorld(dt) {
             drag: 0.88
           });
 
-          if (e.hp <= 0) killEnemy(e, j);
+          if (e.hp <= 0) {
+            killEnemy(e, j);
+
+            if (G.state !== 'playing') return;
+          }
 
           break;
         }
@@ -5231,7 +5509,11 @@ function updateWorld(dt) {
         e.hp -= 4;
         e.flash = 1;
 
-        if (e.hp <= 0) killEnemy(e, j);
+        if (e.hp <= 0) {
+          killEnemy(e, j);
+
+          if (G.state !== 'playing') return;
+        }
       }
     }
   }
@@ -5314,26 +5596,31 @@ function update(rdt) {
     return;
   }
 
+  const frozen = G.state === 'paused' || G.state === 'upgrade';
+
   G.timeScale = G.slowT > 0 ? 0.28 : 1;
-  G.slowT = Math.max(0, G.slowT - rdt);
 
-  if (G.surgeActive) {
-    G.surgeT -= rdt;
+  if (!frozen) {
+    G.slowT = Math.max(0, G.slowT - rdt);
 
-    if (G.surgeT <= 0) {
-      G.surgeActive = false;
-      G.surgeCooldown = 8.0;
-      toast('SURGE DEPLETED');
+    if (G.surgeActive) {
+      G.surgeT -= rdt;
+
+      if (G.surgeT <= 0) {
+        G.surgeActive = false;
+        G.surgeCooldown = 8.0;
+        toast('SURGE DEPLETED');
+      }
+    } else if (G.surgeCooldown > 0) {
+      G.surgeCooldown -= rdt;
     }
-  } else if (G.surgeCooldown > 0) {
-    G.surgeCooldown -= rdt;
   }
 
   G.aberration *= Math.exp(-2 * rdt);
 
-  const dt = (G.state === 'paused') ? 0 : rdt * G.timeScale;
+  const dt = frozen ? 0 : rdt * G.timeScale;
 
-  if (G.state !== 'paused') {
+  if (!frozen) {
     G.time += dt;
 
     G.shake *= Math.exp(-6 * rdt);
@@ -5897,12 +6184,20 @@ function hud(rdt) {
   const inGame =
     G.state === 'playing' ||
     G.state === 'paused' ||
+    G.state === 'upgrade' ||
     G.state === 'over';
 
   setTxt($('hScore'), pad7(G.score));
   setTxt($('hHi'), pad7(G.hi));
   setTxt($('hWave'), String(Math.max(G.wave, 1)).padStart(2, '0'));
   setTxt($('hMult'), '×' + G.mult);
+
+  const showLevel = inGame && G.wave > 0;
+  setChromeVisible('levelHud', showLevel);
+  setTxt($('hLevel'), String(G.runLevel).padStart(2, '0'));
+  setTxt($('hXp'), `${Math.floor(G.runXp)} / ${G.runXpNext}`);
+  $('xpBar').firstElementChild.style.width =
+    clamp(G.runXp / Math.max(G.runXpNext, 1), 0, 1) * 100 + '%';
 
   $('comboBar').firstElementChild.style.width =
     (G.mult >= 9 ? 100 : (G.combo % 6) / 6 * 100) + '%';
@@ -5931,7 +6226,7 @@ function hud(rdt) {
   const boss = G.enemies.find(e => e.type === 'boss');
 
   const showBoss =
-    (G.state === 'playing' || G.state === 'paused') && boss;
+    (G.state === 'playing' || G.state === 'paused' || G.state === 'upgrade') && boss;
 
   setChromeVisible('boss', !!showBoss);
 
@@ -6070,6 +6365,16 @@ addEventListener('keydown', e => {
     return;
   }
 
+  if (G.state === 'upgrade') {
+    const choiceIndex = Number(k) - 1;
+
+    if (choiceIndex >= 0 && choiceIndex < G.upgradeChoices.length) {
+      chooseRunUpgrade(G.upgradeChoices[choiceIndex]);
+    }
+
+    return;
+  }
+
   if (k === 'm') {
     AU.toggle();
     return;
@@ -6150,6 +6455,8 @@ cv.addEventListener('pointerdown', e => {
     resetRun();
   } else if (G.state === 'over' && G.overReady) {
     resetRun();
+  } else if (G.state === 'upgrade') {
+    pointer.down = false;
   } else if (G.state === 'playing' && isTouchDoubleTap) {
     activateSurge();
   }

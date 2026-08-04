@@ -73,6 +73,16 @@ test('input response control covers touch and keyboard steering', () => {
   assert.match(GAME_SOURCE, /rangeTarget && \['arrowup', 'arrowdown', 'arrowleft', 'arrowright'\]/);
 });
 
+test('in-run progression exposes an accessible upgrade choice flow', () => {
+  assert.match(HTML, /id="ovUpgrade"[\s\S]*?aria-labelledby="upgradeTitle"[\s\S]*?inert/);
+  assert.match(HTML, /id="upgradeCards"/);
+  assert.match(HTML, /id="levelHud"/);
+  assert.match(GAME_SOURCE, /function awardRunXp\(amount\)/);
+  assert.match(GAME_SOURCE, /function chooseRunUpgrade\(id\)/);
+  assert.match(GAME_SOURCE, /G\.state = 'upgrade'/);
+  assert.match(GAME_SOURCE, /choices\.length < Math\.min\(3, ids\.length\)/);
+});
+
 test('keyboard navigation cannot accidentally launch or activate menu actions', () => {
   assert.match(GAME_SOURCE, /k === 'tab'/);
   assert.match(GAME_SOURCE, /interactiveTarget && \(k === 'enter' \|\| k === ' '\)/);
@@ -80,7 +90,7 @@ test('keyboard navigation cannot accidentally launch or activate menu actions', 
 });
 
 test('hidden overlays and HUD controls use inert focus management', () => {
-  for (const id of ['hud', 'surge', 'ovHangar', 'ovPause', 'ovOver', 'ovFatal']) {
+  for (const id of ['hud', 'levelHud', 'surge', 'ovHangar', 'ovUpgrade', 'ovPause', 'ovOver', 'ovFatal']) {
     assert.match(HTML, new RegExp(`id="${id}"[^>]*\\binert\\b`), `missing inert state: ${id}`);
   }
 

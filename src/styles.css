@@ -477,6 +477,63 @@ button.cham:disabled {
   transition: width .12s;
 }
 
+#levelHud {
+  position: fixed;
+  left: 16px;
+  bottom: 86px;
+  z-index: 50;
+  width: 210px;
+  padding: 9px 16px 11px;
+  pointer-events: none;
+  transition: opacity .4s;
+}
+
+#levelHud.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+#levelHud .row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  color: var(--dim);
+  font-family: 'Orbitron';
+  font-size: .58rem;
+  letter-spacing: .12em;
+}
+
+#levelHud .lbl {
+  color: var(--cyan);
+}
+
+#hLevel {
+  color: var(--amber);
+  font-size: .82rem;
+}
+
+#hXp {
+  color: var(--dim);
+  font-size: .54rem;
+  letter-spacing: .06em;
+}
+
+#xpBar {
+  height: 5px;
+  margin-top: 6px;
+  background: rgba(95, 242, 255, .12);
+  overflow: hidden;
+}
+
+#xpBar i {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--cyan), var(--amber));
+  box-shadow: 0 0 10px var(--cyan-soft);
+  transition: width .16s ease;
+}
+
 #surge {
   appearance: none;
   position: fixed;
@@ -1221,6 +1278,221 @@ h2.hold {
   gap: 18px;
   text-align: center;
   box-shadow: var(--shadow-panel), var(--shadow-cyan);
+}
+
+.upgradePanel {
+  width: min(1000px, 100%);
+  margin: auto;
+  padding: clamp(24px, 4vw, 42px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: var(--shadow-panel), var(--shadow-cyan);
+}
+
+.upgradeStatus {
+  color: var(--amber);
+}
+
+.upgradeTitleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.upgradeTitleRow > div:first-child {
+  min-width: 0;
+}
+
+.upgradeTitleRow .big {
+  font-size: clamp(1.8rem, 4vw, 3.2rem);
+}
+
+.upgradeTitleRow .overlayCopy {
+  margin-top: 9px;
+  font-size: .9rem;
+}
+
+.upgradeLevelBadge {
+  flex: 0 0 auto;
+  min-width: 94px;
+  padding: 10px 12px;
+  display: grid;
+  gap: 4px;
+  text-align: center;
+  background: rgba(255, 180, 84, .08);
+  border: 1px solid rgba(255, 180, 84, .38);
+  clip-path: var(--cham);
+}
+
+.upgradeLevelBadge span,
+.upgradeXpLabel {
+  color: var(--dim);
+  font-family: 'Orbitron';
+  font-size: .5rem;
+  letter-spacing: .18em;
+}
+
+.upgradeLevelBadge b {
+  color: var(--amber);
+  font-family: 'Orbitron';
+  font-size: 1.55rem;
+  letter-spacing: .08em;
+  text-shadow: 0 0 14px rgba(255, 180, 84, .5);
+}
+
+.upgradeXpLabel {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--cyan);
+}
+
+.upgradeXpLabel span:last-child {
+  color: var(--dim);
+  letter-spacing: .08em;
+}
+
+.upgradeXpBar {
+  height: 6px;
+  margin-top: -8px;
+  background: rgba(95, 242, 255, .12);
+  border: 1px solid rgba(95, 242, 255, .25);
+  overflow: hidden;
+}
+
+.upgradeXpBar i {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--cyan), var(--amber));
+  box-shadow: 0 0 14px var(--cyan-soft);
+}
+
+.upgradeCards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.upgradeCard {
+  appearance: none;
+  min-width: 0;
+  min-height: 236px;
+  padding: 17px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  clip-path: var(--cham);
+  border: 1px solid rgba(95, 242, 255, .28);
+  background:
+    linear-gradient(155deg, rgba(20, 59, 76, .72), rgba(5, 14, 25, .92)),
+    var(--panel);
+  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, filter .16s ease;
+}
+
+.upgradeCard:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 3px;
+}
+
+.upgradeCard.cyan {
+  border-color: rgba(95, 242, 255, .52);
+}
+
+.upgradeCard.amber {
+  border-color: rgba(255, 180, 84, .52);
+  background: linear-gradient(155deg, rgba(73, 48, 25, .72), rgba(15, 11, 10, .92));
+}
+
+.upgradeCard.teal {
+  border-color: rgba(92, 255, 220, .52);
+}
+
+.upgradeCard.surge {
+  border-color: rgba(255, 77, 255, .58);
+  background: linear-gradient(155deg, rgba(67, 24, 70, .72), rgba(17, 7, 25, .92));
+}
+
+.upgradeCard.red {
+  border-color: rgba(255, 92, 71, .58);
+  background: linear-gradient(155deg, rgba(74, 26, 27, .72), rgba(18, 7, 12, .92));
+}
+
+.upgradeCard.violet {
+  border-color: rgba(176, 135, 255, .58);
+  background: linear-gradient(155deg, rgba(45, 32, 76, .72), rgba(10, 8, 24, .92));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .upgradeCard:hover {
+    transform: translateY(-4px);
+    filter: brightness(1.12);
+    border-color: var(--cyan);
+    box-shadow: 0 14px 34px rgba(95, 242, 255, .16);
+  }
+}
+
+.upgradeCardTop {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.upgradeCardIndex,
+.upgradeCardCategory,
+.upgradeCardPrompt {
+  font-family: 'Orbitron';
+  font-size: .48rem;
+  letter-spacing: .16em;
+}
+
+.upgradeCardIndex {
+  color: var(--dim);
+}
+
+.upgradeCardIcon {
+  color: var(--amber);
+  font-size: 1.3rem;
+  line-height: 1;
+  text-shadow: 0 0 13px currentColor;
+}
+
+.upgradeCardCategory {
+  color: var(--cyan);
+  margin-top: 4px;
+}
+
+.upgradeCardName {
+  color: var(--ink);
+  font-family: 'Orbitron';
+  font-size: clamp(.8rem, 1.4vw, 1.02rem);
+  font-weight: 900;
+  letter-spacing: .1em;
+}
+
+.upgradeCardDesc {
+  min-height: 48px;
+  color: var(--dim);
+  font-size: .86rem;
+  line-height: 1.35;
+  letter-spacing: .035em;
+}
+
+.upgradeCardPrompt {
+  margin-top: auto;
+  color: var(--amber);
+  opacity: .78;
+}
+
+.upgradeHint {
+  margin-top: 2px;
 }
 
 .resultCard {
@@ -2343,6 +2615,25 @@ button.buy.max {
     padding: 7px 10px 9px;
   }
 
+  #levelHud {
+    left: var(--safe-left);
+    bottom: calc(74px + env(safe-area-inset-bottom));
+    width: min(148px, 43vw);
+    padding: 7px 10px 9px;
+  }
+
+  #levelHud .row {
+    font-size: .5rem;
+  }
+
+  #hLevel {
+    font-size: .7rem;
+  }
+
+  #hXp {
+    font-size: .44rem;
+  }
+
   #chips {
     right: var(--safe-right);
     bottom: var(--safe-bottom);
@@ -2389,6 +2680,73 @@ button.buy.max {
     margin: auto;
     padding: 22px 16px;
     gap: 14px;
+  }
+
+  .upgradePanel {
+    width: min(520px, 100%);
+    padding: 20px 14px;
+    gap: 12px;
+  }
+
+  .upgradeTitleRow {
+    gap: 10px;
+  }
+
+  .upgradeTitleRow .big {
+    font-size: clamp(1.45rem, 8vw, 2.2rem);
+    letter-spacing: .06em;
+  }
+
+  .upgradeTitleRow .overlayCopy {
+    margin-top: 6px;
+    font-size: .76rem;
+  }
+
+  .upgradeLevelBadge {
+    min-width: 70px;
+    padding: 8px 7px;
+  }
+
+  .upgradeLevelBadge span {
+    font-size: .4rem;
+  }
+
+  .upgradeLevelBadge b {
+    font-size: 1.15rem;
+  }
+
+  .upgradeXpLabel {
+    font-size: .43rem;
+  }
+
+  .upgradeCards {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .upgradeCard {
+    min-height: 112px;
+    padding: 12px;
+    gap: 5px;
+  }
+
+  .upgradeCardCategory,
+  .upgradeCardIndex,
+  .upgradeCardPrompt {
+    font-size: .42rem;
+  }
+
+  .upgradeCardIcon {
+    font-size: 1rem;
+  }
+
+  .upgradeCardName {
+    font-size: .72rem;
+  }
+
+  .upgradeCardDesc {
+    min-height: 0;
+    font-size: .72rem;
   }
 
   .resultCard {

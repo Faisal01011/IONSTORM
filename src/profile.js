@@ -641,14 +641,14 @@
   }
 
   function hideGameHUD() {
-    ['hud', 'combo', 'chips', 'surge', 'boss'].forEach(id => {
+    ['hud', 'levelHud', 'combo', 'chips', 'surge', 'boss'].forEach(id => {
       const el = $(id);
       if (el && window.setChromeVisible) window.setChromeVisible(el, false);
     });
   }
 
   function showGameHUDForOver() {
-    ['hud', 'combo', 'chips', 'surge'].forEach(id => {
+    ['hud', 'levelHud', 'combo', 'chips', 'surge'].forEach(id => {
       const el = $(id);
       if (el && window.setChromeVisible) window.setChromeVisible(el, true);
     });
