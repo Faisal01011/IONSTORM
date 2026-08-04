@@ -3177,13 +3177,15 @@ function initGL(atlasCanvas) {
     antialias: false,
     depth: false,
     stencil: false,
-    powerPreference: 'high-performance'
   });
 
   if (!gl) {
-    throw 'no WebGL2 context';
+    gl = c.getContext('WebGL2');
   }
 
+  if (!gl) {
+    throw 'no WebGL2 context (device may be too old, in Low Power Mode, or out of GPU memory)';
+  }
   const compile = (type, src) => {
     const s = gl.createShader(type);
     gl.shaderSource(s, src);
@@ -5922,10 +5924,22 @@ document.addEventListener('visibilitychange', () => {
 function resize() {
   const c = $('view');
 
-  G.dpr = Math.min(window.devicePixelRatio || 1, 1.5) * quality;
+  // Cap DPR to 1.5 to prevent mobile GPU context creation failures
+  G.dpr = Math.min(window.devicePixelRatio || 1, 1.5);
 
-  c.width = Math.max(2, Math.round(c.clientWidth * G.dpr));
-  c.height = Math.max(2, Math.round(c.clientHeight * G.dpr));
+  let w = Math.round(c.clientWidth * G.dpr);
+  let h = Math.round(c.clientHeight * G.dpr);
+
+  // Hard cap max resolution to 1920 to prevent mobile compositor crashes
+  const maxDim = 1920;
+  if (w > maxDim || h > maxDim) {
+    const scale = maxDim / Math.max(w, h);
+    w = Math.round(w * scale);
+    h = Math.round(h * scale);
+  }
+
+  c.width = Math.max(2, w);
+  c.height = Math.max(2, h);
 
   G.w = c.clientWidth;
   G.h = c.clientHeight;
