@@ -32,6 +32,8 @@ IONSTORM is a neon browser arcade shooter built around fast runs, escalating wav
 | Pause / resume | `P` |
 | Toggle sound | `M` |
 | Restart | `R` |
+
+Reduced flash, reduced shake, and low-quality rendering can be toggled in the hangar. These preferences are saved locally.
 | Launch / relaunch | `Enter` |
 
 ## Browser support
@@ -62,6 +64,8 @@ IONSTORM/
 ├── game.js        # Rendering, game loop, entities, combat, audio, and progression
 ├── profile.js     # Pilot profile, local records, and statistics add-on
 ├── styles.css     # Visual system, HUD, overlays, responsive styling, and effects
+├── og-image.*     # Source and generated social preview image
+├── tests/         # Renderer, gameplay, metadata, and asset regression checks
 └── CNAME          # Custom deployment domain configuration
 ```
 
@@ -75,7 +79,7 @@ IONSTORM/
 
 ## Development checks
 
-Run the syntax checks before committing changes:
+Run the syntax and regression checks before committing changes:
 
 ```bash
 npm run check
@@ -84,4 +88,3 @@ npm run check
 ## License
 
 No license has been declared yet. Add a license file before accepting outside contributions or publishing the code for reuse.
-

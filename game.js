@@ -26,6 +26,11 @@ const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const rand = (a, b) => a + Math.random() * (b - a);
 const TAU = Math.PI * 2;
 
+const boundedInt = (value, min = 0, max = Number.MAX_SAFE_INTEGER) => {
+  const n = Number(value);
+  return Number.isFinite(n) ? clamp(Math.floor(n), min, max) : min;
+};
+
 const pad7 = n => String(Math.floor(n)).padStart(7, '0');
 
 /* =========================================================================
@@ -261,15 +266,20 @@ let SETTINGS = {
 
 try {
   const storedSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
-  SETTINGS = Object.assign(SETTINGS, storedSettings);
-} catch (err) {
+
+  for (const key of Object.keys(SETTINGS)) {
+    if (typeof storedSettings[key] === 'boolean') {
+      SETTINGS[key] = storedSettings[key];
+    }
+  }
+} catch {
   /* Storage may be unavailable. Use defaults. */
 }
 
 function saveSettings() {
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(SETTINGS));
-  } catch (err) {
+  } catch {
     /* Ignore storage failures. */
   }
 }
@@ -296,26 +306,37 @@ let META = {
 try {
   const storedMeta = JSON.parse(localStorage.getItem(META_KEY) || '{}');
 
-  META.scrap = storedMeta.scrap || 0;
+  META.scrap = boundedInt(storedMeta.scrap);
   META.ship = SHIPS[storedMeta.ship] ? storedMeta.ship : 'vanguard';
 
-  META.upgrades = Object.assign(META.upgrades, storedMeta.upgrades || {});
-  META.achievements = Object.assign({}, storedMeta.achievements || {});
-} catch (err) {
+  for (const [id, upgrade] of Object.entries(UPGRADES)) {
+    META.upgrades[id] = boundedInt(
+      storedMeta.upgrades && storedMeta.upgrades[id],
+      0,
+      upgrade.max
+    );
+  }
+
+  for (const id of Object.keys(ACHIEVEMENTS)) {
+    if (storedMeta.achievements && storedMeta.achievements[id] === true) {
+      META.achievements[id] = true;
+    }
+  }
+} catch {
   /* Storage may be unavailable. Use defaults. */
 }
 
 function saveMeta() {
   try {
     localStorage.setItem(META_KEY, JSON.stringify(META));
-  } catch (err) {
+  } catch {
     /* Ignore storage failures. */
   }
 }
 
 function addScrap(amount) {
   if (!amount || amount <= 0) return;
-  META.scrap += Math.floor(amount);
+  META.scrap = boundedInt(META.scrap + Math.floor(amount));
   saveMeta();
 }
 
@@ -344,6 +365,7 @@ const G = {
 
   score: 0,
   hi: 0,
+  runStartHi: 0,
 
   lives: 3,
   maxLives: 3,
@@ -427,8 +449,8 @@ const G = {
 };
 
 try {
-  G.hi = +localStorage.getItem(HI_KEY) || 0;
-} catch (err) {
+  G.hi = boundedInt(localStorage.getItem(HI_KEY));
+} catch {
   G.hi = 0;
 }
 
@@ -884,6 +906,11 @@ const AU = {
       this.out.gain.value = this.muted ? 0 : 0.55;
     }
 
+    /* Do not try to catch up every music step skipped while muted. */
+    if (!this.muted && this.ctx) {
+      this.musicT = this.ctx.currentTime + 0.1;
+    }
+
     const btn = $('sndBtn');
     if (btn) btn.classList.toggle('mut', this.muted);
   },
@@ -1060,7 +1087,10 @@ function buildAtlas() {
 
   const poly = p => {
     g.beginPath();
-    p.forEach((q, i) => i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]));
+    p.forEach((q, i) => {
+      if (i) g.lineTo(q[0], q[1]);
+      else g.moveTo(q[0], q[1]);
+    });
     g.closePath();
   };
 
@@ -1070,7 +1100,8 @@ function buildAtlas() {
       const a = Math.PI / 3 * k + rot;
       const x = Math.cos(a) * rr;
       const y = Math.sin(a) * rr;
-      k ? g.lineTo(x, y) : g.moveTo(x, y);
+      if (k) g.lineTo(x, y);
+      else g.moveTo(x, y);
     }
     g.closePath();
   };
@@ -1089,7 +1120,8 @@ function buildAtlas() {
       const rr2 = k % 2 ? rr * 0.72 : rr;
       const x = Math.cos(a) * rr2;
       const y = Math.sin(a) * rr2;
-      k ? g.lineTo(x, y) : g.moveTo(x, y);
+      if (k) g.lineTo(x, y);
+      else g.moveTo(x, y);
     }
     g.closePath();
 
@@ -2566,7 +2598,7 @@ struct VOut {
   let c = vec2f(f32((vi << 1u) & 2u), f32(vi & 2u)) - 1.0;
 
   var k = clamp(p.lm.x / max(p.lm.y, 0.0001), 0.0, 1.0);
-  var size = p.cs.w * (0.3 + 0.7 * k);
+  var size = p.lm.z * (0.3 + 0.7 * k);
 
   if (p.lm.x <= 0.0) {
     size = 0.0;
@@ -2583,7 +2615,7 @@ struct VOut {
 
   o.pos = vec4f(ndc, 0.0, 1.0);
   o.uv = c;
-  o.col = vec4f(p.cs.rgb, k);
+  o.col = vec4f(p.cs.rgb * p.cs.w, k);
 
   return o;
 }
@@ -2601,7 +2633,7 @@ struct VOut {
 `;
 
 const COMPUTE_WGSL = FRAME_WGSL + `
-const MAXP = 32768u;
+const MAXP = ${MAXP}u;
 
 struct Part {
   pv: vec4f,
@@ -2867,21 +2899,32 @@ async function initGPU(atlasCanvas) {
     }
   });
 
-  const canvas = $('view');
-
-  ctx = canvas.getContext('webgpu');
   format = navigator.gpu.getPreferredCanvasFormat();
-
-  ctx.configure({
-    device,
-    format,
-    alphaMode: 'premultiplied'
-  });
-
-  const atlasTex = device.importExternalTexture({ source: atlasCanvas });
 
   const U = GPUBufferUsage;
   const S = GPUShaderStage;
+  const T = GPUTextureUsage;
+
+  const atlasTex = device.createTexture({
+    label: 'ionstorm-atlas',
+    size: {
+      width: atlasCanvas.width,
+      height: atlasCanvas.height,
+      depthOrArrayLayers: 1
+    },
+    format: 'rgba8unorm',
+    usage: T.TEXTURE_BINDING | T.COPY_DST
+  });
+
+  device.queue.copyExternalImageToTexture(
+    { source: atlasCanvas },
+    { texture: atlasTex },
+    {
+      width: atlasCanvas.width,
+      height: atlasCanvas.height,
+      depthOrArrayLayers: 1
+    }
+  );
 
   frameBuf = device.createBuffer({
     size: 48,
@@ -3154,11 +3197,27 @@ async function initGPU(atlasCanvas) {
     }
   });
 
+  /* Claim the canvas only after resource and pipeline setup succeeds so a
+     WebGL2 fallback remains possible if WebGPU initialization fails. */
+  const canvas = $('view');
+
+  ctx = canvas.getContext('webgpu');
+
+  if (!ctx) {
+    throw new Error('WebGPU canvas context unavailable');
+  }
+
+  ctx.configure({
+    device,
+    format,
+    alphaMode: 'premultiplied'
+  });
+
   let info = '';
 
   try {
     info = (adapter.info && (adapter.info.description || adapter.info.vendor)) || '';
-  } catch (err) {
+  } catch {
     /* Optional adapter info may be unavailable. */
   }
 
@@ -3580,16 +3639,61 @@ function closeHangar() {
   updateTitleMeta();
 }
 
+const SETTING_CONTROLS = {
+  reduceFlash: ['settingFlash', 'settingFlashState'],
+  reduceShake: ['settingShake', 'settingShakeState'],
+  lowQuality: ['settingQuality', 'settingQualityState']
+};
+
+function renderSettings() {
+  for (const [key, [buttonId, stateId]] of Object.entries(SETTING_CONTROLS)) {
+    const enabled = !!SETTINGS[key];
+    const button = $(buttonId);
+
+    button.classList.toggle('on', enabled);
+    button.setAttribute('aria-pressed', String(enabled));
+    $(stateId).textContent = enabled ? 'ON' : 'OFF';
+  }
+}
+
+function toggleSetting(key) {
+  if (!Object.hasOwn(SETTING_CONTROLS, key)) return;
+
+  SETTINGS[key] = !SETTINGS[key];
+  saveSettings();
+
+  if (key === 'reduceFlash' && SETTINGS.reduceFlash) {
+    $('flash').style.opacity = 0;
+  }
+
+  if (key === 'reduceShake' && SETTINGS.reduceShake) {
+    G.shake = 0;
+    G.offX = 0;
+    G.offY = 0;
+  }
+
+  if (key === 'lowQuality') {
+    quality = SETTINGS.lowQuality ? 0.66 : 1;
+    resize();
+  }
+
+  renderSettings();
+  AU.uiConfirm();
+}
+
 function renderHangar() {
   $('hScrap').textContent = META.scrap;
+  renderSettings();
 
   /* Ships */
   const sg = $('shipGrid');
   sg.innerHTML = '';
 
   for (const [id, s] of Object.entries(SHIPS)) {
-    const card = document.createElement('div');
+    const card = document.createElement('button');
+    card.type = 'button';
     card.className = 'shipCard panel' + (META.ship === id ? ' sel' : '');
+    card.setAttribute('aria-pressed', String(META.ship === id));
 
     card.innerHTML = `
       <div class="shipName" style="color:${s.color}">${s.name}</div>
@@ -3631,7 +3735,7 @@ function renderHangar() {
         <div class="upDesc">${u.desc}</div>
       </div>
       <div class="upLvl">LV ${lvl}/${u.max}</div>
-      <button class="buy${maxed ? ' max' : ''}" ${maxed || META.scrap < cost ? 'disabled' : ''}>
+      <button type="button" class="buy${maxed ? ' max' : ''}" ${maxed || META.scrap < cost ? 'disabled' : ''}>
         ${maxed ? 'MAX' : cost + ' SCRAP'}
       </button>
     `;
@@ -3720,6 +3824,7 @@ function resetRun() {
 
   Object.assign(G, {
     score: 0,
+    runStartHi: G.hi,
     lives: G.maxLives,
     wave: 0,
     kills: 0,
@@ -3772,7 +3877,7 @@ function resetRun() {
     mSide: 1,
     alive: true,
 
-    rateMult: ship.fire * (1 - 0.12 * up.rapid),
+    rateMult: (1 / ship.fire) * (1 - 0.12 * up.rapid),
     speedMult: ship.speed * (1 + 0.1 * up.speed)
   });
 
@@ -3908,8 +4013,6 @@ function enemyFire(e) {
 
   const dx = p.x - e.x;
   const dy = p.y - e.y;
-  const d = Math.hypot(dx, dy) || 1;
-
   const spd = Math.min(150 + G.wave * 6, 330);
 
   const shot = ang => {
@@ -4418,7 +4521,7 @@ function gameOver() {
 
   try {
     localStorage.setItem(HI_KEY, String(G.hi));
-  } catch (err) {
+  } catch {
     /* Ignore storage failures. */
   }
 
@@ -4430,7 +4533,8 @@ function gameOver() {
   $('sScrap').textContent = String(earned);
   $('sTotalScrap').textContent = String(META.scrap);
 
-  $('newRec').classList.toggle('hidden', G.score < G.hi || G.score === 0);
+  const isNewRecord = G.score > G.runStartHi;
+  $('newRec').classList.toggle('hidden', !isNewRecord);
 
   updateTitleMeta();
 
@@ -5911,6 +6015,13 @@ $('hangarLaunchBtn').addEventListener('click', () => {
   resetRun();
 });
 
+for (const [key, [buttonId]] of Object.entries(SETTING_CONTROLS)) {
+  $(buttonId).addEventListener('click', () => {
+    AU.ensure();
+    toggleSetting(key);
+  });
+}
+
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && G.state === 'playing') {
     pauseToggle();
@@ -5925,7 +6036,7 @@ function resize() {
   const c = $('view');
 
   // Cap DPR to 1.5 to prevent mobile GPU context creation failures
-  G.dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+  G.dpr = Math.min(window.devicePixelRatio || 1, 1.5) * quality;
 
   let w = Math.round(c.clientWidth * G.dpr);
   let h = Math.round(c.clientHeight * G.dpr);
@@ -5948,6 +6059,9 @@ function resize() {
 addEventListener('resize', resize);
 
 function fatal(why) {
+  G.state = 'fatal';
+  mode = null;
+
   $('fatalWhy').textContent = why;
 
   show($('ovFatal'), true);
@@ -5958,15 +6072,13 @@ function fatal(why) {
 }
 
 addEventListener('error', e => {
-  if (G.state === 'boot') {
-    fatal('RUNTIME — ' + (e.message || 'unknown error'));
-  }
+  if (G.state === 'fatal') return;
+  fatal('RUNTIME — ' + (e.message || 'unknown error'));
 });
 
 addEventListener('unhandledrejection', e => {
-  if (G.state === 'boot') {
-    fatal('ASYNC — ' + String(e.reason && e.reason.message || e.reason));
-  }
+  if (G.state === 'fatal') return;
+  fatal('ASYNC — ' + String(e.reason && e.reason.message || e.reason));
 });
 
 const withTimeout = (pr, ms, tag) => Promise.race([
@@ -5980,7 +6092,7 @@ const withTimeout = (pr, ms, tag) => Promise.race([
 
 let lastT = 0;
 let emaDt = 16;
-let quality = 1;
+let quality = SETTINGS.lowQuality ? 0.66 : 1;
 
 function frame(ts) {
   requestAnimationFrame(frame);

@@ -11,7 +11,16 @@
   <meta property="og:title" content="IONSTORM — WebGPU Arcade">
   <meta property="og:description" content="Defend the Veil. Ride the Surge.">
   <meta property="og:type" content="website">
-  <meta property="og:image" content="og-image.png">
+  <meta property="og:url" content="https://ionstorm.vercel.app/">
+  <meta property="og:image" content="https://ionstorm.vercel.app/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="IONSTORM — Defend the Veil. Ride the Surge.">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="IONSTORM — WebGPU Arcade">
+  <meta name="twitter:description" content="Defend the Veil. Ride the Surge.">
+  <meta name="twitter:image" content="https://ionstorm.vercel.app/og-image.png">
 
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
 
@@ -23,7 +32,7 @@
 </head>
 
 <body>
-  <canvas id="view"></canvas>
+  <canvas id="view">IONSTORM requires a browser with HTML canvas support.</canvas>
 
   <div id="fx-scan"></div>
   <div id="fx-vig"></div>
@@ -53,14 +62,14 @@
         <div id="hLives"></div>
       </div>
 
-      <div class="panel hudbtn" id="sndBtn" title="Toggle sound">
-        <span class="dot"></span>
+      <button type="button" class="panel hudbtn" id="sndBtn" title="Toggle sound" aria-label="Toggle sound">
+        <span class="dot" aria-hidden="true"></span>
         SND
-      </div>
+      </button>
 
-      <div class="panel hudbtn" id="pauseBtn" title="Pause">
+      <button type="button" class="panel hudbtn" id="pauseBtn" title="Pause" aria-label="Pause or resume">
         ❚❚
-      </div>
+      </button>
     </div>
   </header>
 
@@ -107,8 +116,8 @@
   </div>
 
   <div id="fps"></div>
-  <div id="banner"></div>
-  <div id="toasts"></div>
+  <div id="banner" aria-live="polite"></div>
+  <div id="toasts" role="status" aria-live="polite"></div>
 
   <!-- TITLE SCREEN -->
   <section id="ovTitle" class="ov on">
@@ -141,11 +150,11 @@
     </div>
 
     <div class="titleBtns">
-      <div class="start blink" id="startPrompt">
+      <button type="button" class="start blink" id="startPrompt">
         ▸ PRESS ANY KEY TO LAUNCH · H FOR HANGAR
-      </div>
+      </button>
 
-      <button class="cham" id="hangarBtn">
+      <button type="button" class="cham" id="hangarBtn">
         HANGAR
       </button>
     </div>
@@ -175,12 +184,33 @@
       <div class="lbl">UPGRADES</div>
       <div id="upGrid"></div>
 
+      <div class="lbl">ACCESSIBILITY &amp; PERFORMANCE</div>
+      <div id="settingsGrid">
+        <button type="button" class="setting panel" id="settingFlash" aria-pressed="false">
+          <span class="settingName">REDUCED FLASH</span>
+          <span class="settingDesc">Suppress impact flashes and reduce bloom</span>
+          <span class="settingState" id="settingFlashState">OFF</span>
+        </button>
+
+        <button type="button" class="setting panel" id="settingShake" aria-pressed="false">
+          <span class="settingName">REDUCED SHAKE</span>
+          <span class="settingDesc">Limit camera shake and chromatic impact</span>
+          <span class="settingState" id="settingShakeState">OFF</span>
+        </button>
+
+        <button type="button" class="setting panel" id="settingQuality" aria-pressed="false">
+          <span class="settingName">LOW QUALITY</span>
+          <span class="settingDesc">Lower render resolution for slower devices</span>
+          <span class="settingState" id="settingQualityState">OFF</span>
+        </button>
+      </div>
+
       <div class="lbl">ACHIEVEMENTS</div>
       <div id="achGrid"></div>
 
       <div class="hangarBtns">
-        <button class="cham" id="hangarBackBtn">BACK</button>
-        <button class="cham" id="hangarLaunchBtn">LAUNCH</button>
+        <button type="button" class="cham" id="hangarBackBtn">BACK</button>
+        <button type="button" class="cham" id="hangarLaunchBtn">LAUNCH</button>
       </div>
     </div>
   </section>
@@ -241,7 +271,7 @@
         update GPU drivers, or use a modern browser such as
         Chrome, Edge, Firefox, or Safari with WebGPU/WebGL2 support.
       </p>
-      <button class="cham" onclick="location.reload()">RETRY</button>
+      <button type="button" class="cham" onclick="location.reload()">RETRY</button>
     </div>
   </section>
 
