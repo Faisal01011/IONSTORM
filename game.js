@@ -915,7 +915,7 @@ const AU = {
     }
 
     const btn = $('sndBtn');
-    if (btn) btn.classList.toggle('mut', this.muted);
+    if (btn) syncSoundControls();
   },
 
   BASS: [
@@ -3570,6 +3570,55 @@ function explosion(x, y, s) {
 
 function show(el, on) {
   el.classList.toggle('on', on);
+  el.inert = !on;
+}
+
+function setChromeVisible(target, on) {
+  const el = typeof target === 'string' ? $(target) : target;
+
+  if (!el) return;
+
+  el.classList.toggle('hidden', !on);
+  el.inert = !on;
+}
+
+function setGameControlsInteractive(on) {
+  ['hud', 'surge'].forEach(id => {
+    const el = $(id);
+    if (el) el.inert = !on;
+  });
+}
+
+function setPauseButton(paused) {
+  const button = $('pauseBtn');
+
+  if (!button) return;
+
+  const icon = button.querySelector('.hudbtnIcon');
+  const label = button.querySelector('.hudbtnLabel');
+
+  if (icon) icon.textContent = paused ? '▶' : '❚❚';
+  if (label) label.textContent = paused ? 'RESUME' : 'PAUSE';
+
+  button.setAttribute('aria-label', paused ? 'Resume game' : 'Pause game');
+  button.setAttribute('aria-pressed', String(paused));
+}
+
+function syncSoundControls() {
+  const soundButton = $('sndBtn');
+  const pauseSoundButton = $('pauseSoundBtn');
+  const soundOn = !AU.muted;
+
+  if (soundButton) {
+    soundButton.classList.toggle('mut', AU.muted);
+    soundButton.setAttribute('aria-pressed', String(soundOn));
+    soundButton.setAttribute('aria-label', soundOn ? 'Mute sound' : 'Enable sound');
+  }
+
+  if (pauseSoundButton) {
+    pauseSoundButton.textContent = soundOn ? 'SOUND ON' : 'SOUND OFF';
+    pauseSoundButton.setAttribute('aria-pressed', String(soundOn));
+  }
 }
 
 function banner(txt) {
@@ -3590,9 +3639,11 @@ function toast(txt, cls) {
 
 function drawLives() {
   const max = G.maxLives || 3;
+  const hull = $('hLives');
 
-  $('hLives').innerHTML = Array.from({ length: max }, (_, i) => {
-    return `<span class="pip${i < G.lives ? '' : ' off'}"></span>`;
+  hull.setAttribute('aria-label', `${G.lives} of ${max} hull points remaining`);
+  hull.innerHTML = Array.from({ length: max }, (_, i) => {
+    return `<span class="pip${i < G.lives ? '' : ' off'}" aria-hidden="true"></span>`;
   }).join('');
 }
 
@@ -3626,7 +3677,7 @@ function openHangar() {
   show($('ovHangar'), true);
 
   ['hud', 'combo', 'chips', 'surge', 'boss'].forEach(id => {
-    $(id).classList.add('hidden');
+    setChromeVisible(id, false);
   });
 
   AU.ensure();
@@ -3901,13 +3952,13 @@ function resetRun() {
   show($('ovHangar'), false);
 
   ['hud', 'combo', 'chips', 'surge'].forEach(id => {
-    $(id).classList.remove('hidden');
+    setChromeVisible(id, true);
   });
 
-  $('boss').classList.add('hidden');
+  setChromeVisible('boss', false);
+  setGameControlsInteractive(true);
 
-  const pauseBtn = $('pauseBtn');
-  if (pauseBtn) pauseBtn.textContent = '❚❚';
+  setPauseButton(false);
 
   startWave(1);
   drawLives();
@@ -4543,9 +4594,14 @@ function gameOver() {
 
   AU.over();
   show($('ovOver'), true);
+  setGameControlsInteractive(false);
+
+  const relaunchBtn = $('relaunchBtn');
+  if (relaunchBtn) relaunchBtn.disabled = true;
 
   setTimeout(() => {
     G.overReady = true;
+    if (relaunchBtn) relaunchBtn.disabled = false;
   }, 600);
 }
 
@@ -5773,15 +5829,28 @@ function hud(rdt) {
   setTxt($('surgePct'), Math.floor(G.surge) + '%');
 
   $('surgeBar').firstElementChild.style.width = G.surge + '%';
-  $('surge').classList.toggle('active', G.surgeActive);
-  $('surge').style.opacity = inGame ? 1 : 0.3;
+  const surgeControl = $('surge');
+  const surgeReady =
+    G.state === 'playing' &&
+    G.surge >= 100 &&
+    !G.surgeActive &&
+    G.surgeCooldown <= 0;
+
+  surgeControl.classList.toggle('active', G.surgeActive);
+  surgeControl.classList.toggle('ready', surgeReady);
+  surgeControl.disabled = !surgeReady;
+  surgeControl.setAttribute(
+    'aria-label',
+    surgeReady ? 'Activate Surge — ready' : `Surge charging — ${Math.floor(G.surge)} percent`
+  );
+  surgeControl.style.opacity = inGame ? 1 : 0.3;
 
   const boss = G.enemies.find(e => e.type === 'boss');
 
   const showBoss =
     (G.state === 'playing' || G.state === 'paused') && boss;
 
-  $('boss').classList.toggle('hidden', !showBoss);
+  setChromeVisible('boss', !!showBoss);
 
   if (showBoss) {
     setTxt(
@@ -5799,6 +5868,7 @@ function hud(rdt) {
 
   const chip = (el, on, pct) => {
     el.classList.toggle('hidden', !on);
+    el.inert = !on;
 
     if (on && pct != null) {
       el.querySelector('.bar i').style.width = (pct * 100) + '%';
@@ -5848,20 +5918,20 @@ function pauseToggle() {
     G.state = 'paused';
 
     show($('ovPause'), true);
+    setGameControlsInteractive(false);
 
     if (AU.ctx) AU.ctx.suspend();
 
-    const pauseBtn = $('pauseBtn');
-    if (pauseBtn) pauseBtn.textContent = '▶';
+    setPauseButton(true);
   } else if (G.state === 'paused') {
     G.state = 'playing';
 
     show($('ovPause'), false);
+    setGameControlsInteractive(true);
 
     if (AU.ctx) AU.ctx.resume();
 
-    const pauseBtn = $('pauseBtn');
-    if (pauseBtn) pauseBtn.textContent = '❚❚';
+    setPauseButton(false);
   }
 }
 
@@ -5871,6 +5941,22 @@ function pauseToggle() {
 
 addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
+  const target = e.target instanceof Element ? e.target : null;
+  const interactiveTarget = target && target.closest(
+    'button, input, select, textarea, dialog, [role="button"]'
+  );
+
+  if (
+    k === 'tab' ||
+    k === 'shift' ||
+    k === 'control' ||
+    k === 'alt' ||
+    k === 'meta' ||
+    document.querySelector('dialog[open]') ||
+    (interactiveTarget && (k === 'enter' || k === ' '))
+  ) {
+    return;
+  }
 
   if ([' ', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) {
     e.preventDefault();
@@ -5915,7 +6001,10 @@ addEventListener('keydown', e => {
       return;
     }
 
-    resetRun();
+    if (k === 'enter' || k === ' ') {
+      resetRun();
+    }
+
     return;
   }
 
@@ -6010,6 +6099,11 @@ $('resumeBtn').addEventListener('click', () => {
   if (G.state === 'paused') pauseToggle();
 });
 
+$('pauseSoundBtn').addEventListener('click', () => {
+  AU.ensure();
+  AU.toggle();
+});
+
 $('pauseRestartBtn').addEventListener('click', () => {
   AU.ensure();
   resetRun();
@@ -6023,6 +6117,11 @@ $('relaunchBtn').addEventListener('click', () => {
 $('overHangarBtn').addEventListener('click', () => {
   AU.ensure();
   if (G.state === 'over') openHangar();
+});
+
+$('surge').addEventListener('click', () => {
+  AU.ensure();
+  if (G.state === 'playing') activateSurge();
 });
 
 $('startPrompt').addEventListener('click', () => {
@@ -6098,11 +6197,16 @@ function fatal(why) {
 
   $('fatalWhy').textContent = why;
 
-  show($('ovFatal'), true);
-  show($('ovTitle'), false);
-  show($('ovHangar'), false);
+  ['ovTitle', 'ovHangar', 'ovPause', 'ovOver', 'ovProfile', 'ovRecords'].forEach(id => {
+    const overlay = $(id);
+    if (overlay) show(overlay, false);
+  });
 
-  $('hud').classList.add('hidden');
+  show($('ovFatal'), true);
+
+  ['hud', 'combo', 'chips', 'surge', 'boss'].forEach(id => {
+    setChromeVisible(id, false);
+  });
 }
 
 addEventListener('error', e => {
@@ -6214,7 +6318,8 @@ function frame(ts) {
 
     G.state = 'title';
 
-    $('sndBtn').classList.toggle('mut', SETTINGS.muted);
+    syncSoundControls();
+    setPauseButton(false);
 
     updateTitleMeta();
 
