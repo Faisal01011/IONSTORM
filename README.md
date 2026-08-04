@@ -18,6 +18,7 @@ It uses WebGPU when available and falls back to WebGL2 automatically, so the sam
 - GPU-driven particles, instanced sprites, procedural backgrounds, and screen effects
 - Automatic cannons with pointer, keyboard, and touch movement
 - Escalating enemy waves, asteroids, power-ups, and Dreadnought bosses
+- In-run XP progression with three-choice temporary upgrade drafts
 - SURGE overdrive, combo multipliers, achievements, and score chasing
 - Three ships with distinct speed, hull, shield, and firing profiles
 - Persistent scrap, upgrades, pilot profile, local records, and statistics
@@ -37,6 +38,10 @@ It uses WebGPU when available and falls back to WebGL2 automatically, so the sam
 | Toggle sound | `M` | Tap the sound button |
 | Open Hangar | `H` | Tap **HANGAR** |
 | Relaunch after a run | `R` or `Enter` | Tap **RELAUNCH** |
+
+During a deployment, destroyed enemies grant run XP. Each level-up pauses the
+mission and offers three different temporary systems; choose with `1`–`3` on
+desktop or tap a card on mobile. These upgrades reset when the run ends.
 
 Visual and performance preferences are saved locally in the browser.
 The Hangar's **INPUT RESPONSE** slider tunes touch, pointer, and keyboard steering from 75% (precise) to 175% (fast), with 125% as the default.
@@ -100,11 +105,10 @@ The current records board is intentionally local to the browser; it is not a glo
 
 The next gameplay milestones are:
 
-1. In-run upgrade choices that make every deployment meaningfully different
-2. Elite enemies with randomized modifiers
-3. Multi-phase Dreadnought encounters
-4. Daily seeded challenges with shareable scores
-5. Installable PWA support and gamepad input
+1. Elite enemies with randomized modifiers
+2. Multi-phase Dreadnought encounters
+3. Daily seeded challenges with shareable scores
+4. Installable PWA support and gamepad input
 
 ## License
 

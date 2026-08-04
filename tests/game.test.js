@@ -148,6 +148,7 @@ function makeHarness() {
       META,
       SETTINGS,
       SHIPS,
+      RUN_UPGRADES,
       AU,
       COMPUTE_WGSL,
       PART_WGSL,
@@ -156,6 +157,10 @@ function makeHarness() {
       gameOver,
       resize,
       waveProfile,
+      nextRunLevelXp,
+      awardRunXp,
+      chooseRunUpgrade,
+      applyRunUpgrade,
       enemyIsTargetable,
       nearestEnemy,
       updateWorld,
@@ -366,6 +371,64 @@ test('input response is clamped, persisted, and speeds both control paths', () =
 
   api.setInputResponse(0);
   assert.equal(api.SETTINGS.inputResponse, 0.75);
+});
+
+test('run XP pauses the mission and presents three unique upgrade choices', () => {
+  const { api, elements } = makeHarness();
+
+  api.resize();
+  api.resetRun();
+  api.G.runXp = api.G.runXpNext - 10;
+
+  api.awardRunXp(20);
+
+  assert.equal(api.G.runLevel, 2);
+  assert.equal(api.G.state, 'upgrade');
+  assert.equal(api.G.upgradeQueue, 1);
+  assert.equal(api.G.upgradeChoices.length, 3);
+  assert.equal(new Set(api.G.upgradeChoices).size, 3);
+  assert.equal(elements.get('ovUpgrade').classList.contains('on'), true);
+  assert.equal(elements.get('upgradeCards').children.length, 3);
+});
+
+test('selecting an in-run upgrade applies it and resumes the mission', () => {
+  const { api, elements } = makeHarness();
+
+  api.resize();
+  api.resetRun();
+  api.G.state = 'upgrade';
+  api.G.upgradeQueue = 1;
+  api.G.upgradeChoices = ['overclock'];
+  api.G.player.rateMult = 1;
+
+  assert.equal(api.chooseRunUpgrade('overclock'), true);
+  assert.equal(api.G.state, 'playing');
+  assert.equal(api.G.upgradeQueue, 0);
+  assert.equal(api.G.runUpgrades.overclock, 1);
+  assert.equal(api.G.player.rateMult, 0.86);
+  assert.equal(elements.get('ovUpgrade').classList.contains('on'), false);
+});
+
+test('temporary run upgrades reset on the next deployment', () => {
+  const { api } = makeHarness();
+
+  api.resize();
+  api.resetRun();
+  api.G.state = 'upgrade';
+  api.G.upgradeQueue = 1;
+  api.G.upgradeChoices = ['surgeCore'];
+
+  api.chooseRunUpgrade('surgeCore');
+
+  assert.equal(api.G.surgeDuration, 6.25);
+  assert.equal(api.G.runUpgrades.surgeCore, 1);
+
+  api.resetRun();
+
+  assert.equal(api.G.runLevel, 1);
+  assert.equal(api.G.runXp, 0);
+  assert.equal(api.G.surgeDuration, 5);
+  assert.equal(Object.keys(api.G.runUpgrades).length, 0);
 });
 
 test('unmuting resynchronizes procedural music instead of catching up', () => {

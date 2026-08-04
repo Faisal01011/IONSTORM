@@ -25,7 +25,13 @@ The WebGPU path uses embedded WGSL for background, sprite, particle, and compute
 
 ## State and persistence
 
-Core state lives in the `G` object in `src/game.js`. It covers the active run, player, enemies, projectiles, pickups, waves, score, combo, boss state, and renderer timing.
+Core state lives in the `G` object in `src/game.js`. It covers the active run, player, enemies, projectiles, pickups, waves, score, combo, boss state, renderer timing, and temporary run progression.
+
+Enemy kills award run XP. When the current threshold is reached, the simulation
+enters the `upgrade` state and freezes the world while `ovUpgrade` presents
+three unique temporary systems. Choosing a card applies its effect immediately;
+the choice is kept only in the current `G.runUpgrades` run state and is cleared
+by `resetRun()`.
 
 Persistent values are intentionally local to the browser:
 
@@ -46,7 +52,7 @@ The local records list is not a server leaderboard and is not tamper-proof. No a
 - Pointer input lets desktop players steer the ship directly.
 - Touch input uses the same pointer path, adds a visible SURGE control, and provides touch actions for overlays that would otherwise be keyboard-only.
 - The Hangar's input-response setting changes steering convergence and keyboard acceleration without changing the selected ship's base speed.
-- Focus management uses `inert`, ARIA labels, visible focus styles, and explicit button types so inactive overlays do not trap keyboard users.
+- Focus management uses `inert`, ARIA labels, visible focus styles, and explicit button types so inactive overlays do not trap keyboard users. Upgrade cards are real buttons and support both touch selection and `1`–`3` keyboard shortcuts.
 
 ## Validation model
 
