@@ -1,90 +1,110 @@
 # IONSTORM
 
-> Defend the Veil. Ride the Surge.
+**Defend the Veil. Ride the Surge.**
 
-IONSTORM is a neon browser arcade shooter built around fast runs, escalating waves, boss encounters, procedural audio, and persistent hangar progression. It uses WebGPU when available and automatically falls back to WebGL2 for broader browser compatibility.
+[![Play the live game](https://img.shields.io/badge/play-live%20game-5ff2ff?style=flat-square&logo=vercel&logoColor=061018)](https://ionstorm.vercel.app)
+[![Quality checks](https://github.com/Faisal01011/IONSTORM/actions/workflows/quality.yml/badge.svg)](https://github.com/Faisal01011/IONSTORM/actions/workflows/quality.yml)
+[![License](https://img.shields.io/badge/license-MIT-ffb454?style=flat-square)](LICENSE)
 
-## Play
+IONSTORM is a neon browser arcade shooter built for short, replayable runs. Pilot through escalating enemy waves, break Dreadnought boss encounters, collect scrap, and bring permanent Hangar upgrades into your next deployment.
 
-**Live game:** [ionstorm.vercel.app](https://ionstorm.vercel.app)
+It uses WebGPU when available and falls back to WebGL2 automatically, so the same game can run across modern desktop and mobile browsers without an account, backend, or installation step.
 
-## Features
+[![IONSTORM preview](og-image.png)](https://ionstorm.vercel.app)
 
-- WebGPU renderer with WebGL2 fallback
-- GPU-driven particles and instanced rendering
-- Automatic cannons and pointer-controlled movement
-- Enemy waves, asteroids, power-ups, and Dreadnought boss fights
-- SURGE overdrive ability
-- Combo multiplier and score chasing
-- Three unlockable ships with different play styles
-- Persistent scrap, upgrades, achievements, high scores, pilot profile, and local records
-- Procedural sound effects and music
-- Reduced flash, reduced shake, and low-quality performance options
-- No backend or account required; progress is stored locally in the browser
+## What is included
+
+- WebGPU rendering with a WebGL2 fallback
+- GPU-driven particles, instanced sprites, procedural backgrounds, and screen effects
+- Automatic cannons with pointer, keyboard, and touch movement
+- Escalating enemy waves, asteroids, power-ups, and Dreadnought bosses
+- SURGE overdrive, combo multipliers, achievements, and score chasing
+- Three ships with distinct speed, hull, shield, and firing profiles
+- Persistent scrap, upgrades, pilot profile, local records, and statistics
+- Procedural sound effects and music with accessible mute controls
+- Reduced flash, reduced shake, contrast, and low-quality performance settings
+- A responsive interface for desktop, portrait mobile, and landscape mobile play
 
 ## Controls
 
-| Action | Keyboard / input |
-|---|---|
-| Move | `WASD`, arrow keys, or pointer |
-| Activate SURGE | `Space` when full |
-| Open hangar | `H` |
-| Pause / resume | `P` |
-| Toggle sound | `M` |
-| Restart | `R` |
+| Action | Desktop | Mobile |
+| --- | --- | --- |
+| Move | `WASD`, arrow keys, or pointer | Drag on the game canvas |
+| Fire | Automatic cannons | Automatic cannons |
+| Activate SURGE | `Space` when charged | Tap the SURGE control or double-tap |
+| Launch | `Enter` or `Space` | Tap **LAUNCH MISSION** |
+| Pause / resume | `P` | Tap the pause button |
+| Toggle sound | `M` | Tap the sound button |
+| Open Hangar | `H` | Tap **HANGAR** |
+| Relaunch after a run | `R` or `Enter` | Tap **RELAUNCH** |
 
-Reduced flash, reduced shake, and low-quality rendering can be toggled in the hangar. These preferences are saved locally.
-| Launch / relaunch | `Enter` |
-
-## Browser support
-
-Use a current version of Chrome, Edge, Firefox, or Safari with hardware acceleration enabled. WebGPU is preferred. Browsers without WebGPU support use the WebGL2 fallback automatically.
-
-If the game reports a renderer error, update your browser and graphics drivers, enable hardware acceleration, and reload the page.
+Visual and performance preferences are saved locally in the browser.
 
 ## Run locally
 
-IONSTORM is a dependency-free static site. You can serve it with any local HTTP server:
+IONSTORM is a static site. Node.js is only used for the repository checks; no runtime package installation is required by the game.
 
 ```bash
 git clone https://github.com/Faisal01011/IONSTORM.git
 cd IONSTORM
-python3 -m http.server 4173
+npm ci
+npm run check
+npm run serve
 ```
 
-Open [http://localhost:4173](http://localhost:4173).
+Open [http://localhost:4173](http://localhost:4173). A local HTTP server is recommended because it reproduces deployed asset and browser behavior more reliably than opening `index.html` directly.
 
-Opening `index.html` directly may work, but a local server is recommended for consistent browser behavior.
+## Browser support
 
-## Project structure
+Use a current version of Chrome, Edge, Firefox, or Safari with hardware acceleration enabled. WebGPU is preferred; browsers without a working WebGPU path use the WebGL2 fallback automatically.
+
+If the title screen reports a renderer error, update the browser and graphics drivers, enable hardware acceleration, and reload the page. The renderer shown in the mission panel tells you whether WebGPU or WebGL2 is active.
+
+## Repository layout
 
 ```text
 IONSTORM/
-├── index.html     # Game shell, HUD, menus, and overlays
-├── game.js        # Rendering, game loop, entities, combat, audio, and progression
-├── profile.js     # Pilot profile, local records, and statistics add-on
-├── styles.css     # Visual system, HUD, overlays, responsive styling, and effects
-├── og-image.*     # Source and generated social preview image
-├── tests/         # Renderer, gameplay, metadata, and asset regression checks
-└── CNAME          # Custom deployment domain configuration
+├── .github/             CI, issue forms, PR template, and code ownership
+├── docs/                architecture and development notes
+├── src/
+│   ├── game.js          renderer, simulation, input, audio, and core progression
+│   ├── profile.js       pilot profile, records, and statistics add-on
+│   └── styles.css       visual system and responsive interface
+├── tests/               Node regression tests and repository contracts
+├── index.html           static entry point and game shell
+├── og-image.png         generated social preview
+├── og-image.svg         editable social preview source
+├── CNAME                custom deployment domain configuration
+├── package.json         metadata and developer commands
+└── LICENSE              MIT license
 ```
 
-## Technical notes
+Read the [architecture notes](docs/architecture.md) for the boot sequence, renderer paths, persistence keys, input model, and testing strategy.
 
-- WebGPU shaders are embedded in `game.js` as WGSL.
-- WebGL2 shaders are embedded as GLSL ES 3.00 fallback programs.
-- Game progression, settings, and local records use `localStorage`.
-- The local leaderboard is intentionally client-side and is not tamper-proof.
-- The game currently has no server-side account, matchmaking, or global leaderboard.
+## Development
 
-## Development checks
-
-Run the syntax and regression checks before committing changes:
+Run the full validation suite before opening a pull request:
 
 ```bash
 npm run check
 ```
 
+The check runs JavaScript syntax validation and the built-in Node test suite. GitHub Actions runs the same command for pushes to `main` and pull requests targeting `main`.
+
+For contribution expectations, browser testing guidance, and the project boundaries, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Scope and roadmap
+
+The current records board is intentionally local to the browser; it is not a global leaderboard and is not tamper-proof. There is no account system, matchmaking, or server-side progression.
+
+The next gameplay milestones are:
+
+1. In-run upgrade choices that make every deployment meaningfully different
+2. Elite enemies with randomized modifiers
+3. Multi-phase Dreadnought encounters
+4. Daily seeded challenges with shareable scores
+5. Installable PWA support and gamepad input
+
 ## License
 
-No license has been declared yet. Add a license file before accepting outside contributions or publishing the code for reuse.
+IONSTORM is released under the [MIT License](LICENSE).

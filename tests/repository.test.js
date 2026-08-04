@@ -7,9 +7,9 @@ const test = require('node:test');
 
 const ROOT = path.resolve(__dirname, '..');
 const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-const GAME_SOURCE = fs.readFileSync(path.join(ROOT, 'game.js'), 'utf8');
-const PROFILE_SOURCE = fs.readFileSync(path.join(ROOT, 'profile.js'), 'utf8');
-const CSS = fs.readFileSync(path.join(ROOT, 'styles.css'), 'utf8');
+const GAME_SOURCE = fs.readFileSync(path.join(ROOT, 'src', 'game.js'), 'utf8');
+const PROFILE_SOURCE = fs.readFileSync(path.join(ROOT, 'src', 'profile.js'), 'utf8');
+const CSS = fs.readFileSync(path.join(ROOT, 'src', 'styles.css'), 'utf8');
 
 test('all local HTML asset references exist', () => {
   const references = [
@@ -93,4 +93,31 @@ test('the social preview metadata describes the generated image', () => {
   const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
   assert.deepEqual(image.subarray(0, 8), pngSignature);
+});
+
+test('repository metadata and source boundaries are production-ready', () => {
+  const packageJson = JSON.parse(
+    fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')
+  );
+
+  assert.equal(packageJson.license, 'MIT');
+  assert.equal(packageJson.repository.url, 'git+https://github.com/Faisal01011/IONSTORM.git');
+  assert.equal(packageJson.homepage, 'https://ionstorm.vercel.app');
+
+  for (const file of [
+    'LICENSE',
+    'CONTRIBUTING.md',
+    'SECURITY.md',
+    'docs/architecture.md',
+    '.github/workflows/quality.yml',
+    'src/game.js',
+    'src/profile.js',
+    'src/styles.css'
+  ]) {
+    assert.equal(fs.existsSync(path.join(ROOT, file)), true, `missing project file: ${file}`);
+  }
+
+  assert.match(HTML, /src\/styles\.css/);
+  assert.match(HTML, /src\/game\.js/);
+  assert.match(HTML, /src\/profile\.js/);
 });

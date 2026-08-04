@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Play the live build
+    url: https://ionstorm.vercel.app
+    about: Confirm whether a behavior is specific to the deployed build before filing an issue.

@@ -2,9 +2,20 @@
 .DS_Store
 Thumbs.db
 .vscode/
+.idea/
+
+# Local secrets and tool state
+.env
+.env.*
+!.env.example
+.vercel/
 
 # Local development output
 node_modules/
 dist/
 build/
+coverage/
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
