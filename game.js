@@ -464,7 +464,10 @@ const pointer = {
   x: 0,
   y: 0,
   down: false,
-  lastMove: -9
+  lastMove: -9,
+  lastTapAt: -999,
+  lastTapX: 0,
+  lastTapY: 0
 };
 
 /* =========================================================================
@@ -5957,6 +5960,11 @@ cv.addEventListener('pointermove', e => {
 cv.addEventListener('pointerdown', e => {
   AU.ensure();
 
+  const now = performance.now();
+  const tapGap = now - pointer.lastTapAt;
+  const tapDistance = Math.hypot(e.clientX - pointer.lastTapX, e.clientY - pointer.lastTapY);
+  const isTouchDoubleTap = e.pointerType === 'touch' && tapGap < 320 && tapDistance < 70;
+
   pointer.down = true;
   pointer.x = e.clientX;
   pointer.y = e.clientY;
@@ -5966,7 +5974,13 @@ cv.addEventListener('pointerdown', e => {
     resetRun();
   } else if (G.state === 'over' && G.overReady) {
     resetRun();
+  } else if (G.state === 'playing' && isTouchDoubleTap) {
+    activateSurge();
   }
+
+  pointer.lastTapAt = now;
+  pointer.lastTapX = e.clientX;
+  pointer.lastTapY = e.clientY;
 });
 
 addEventListener('pointerup', () => {
@@ -5989,6 +6003,26 @@ $('pauseBtn').addEventListener('click', e => {
   }
 
   e.currentTarget.blur();
+});
+
+$('resumeBtn').addEventListener('click', () => {
+  AU.ensure();
+  if (G.state === 'paused') pauseToggle();
+});
+
+$('pauseRestartBtn').addEventListener('click', () => {
+  AU.ensure();
+  resetRun();
+});
+
+$('relaunchBtn').addEventListener('click', () => {
+  AU.ensure();
+  if (G.state === 'over' && G.overReady) resetRun();
+});
+
+$('overHangarBtn').addEventListener('click', () => {
+  AU.ensure();
+  if (G.state === 'over') openHangar();
 });
 
 $('startPrompt').addEventListener('click', () => {

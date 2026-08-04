@@ -48,6 +48,12 @@ body {
   user-select: none;
   -webkit-user-select: none;
   overscroll-behavior: none;
+  min-height: 100dvh;
+}
+
+.mobileOnly,
+.mobileCtrls {
+  display: none;
 }
 
 #view {
@@ -923,6 +929,17 @@ h2.hold {
   flex-wrap: wrap;
 }
 
+.overlayBtns {
+  gap: 10px;
+  width: min(100%, 320px);
+}
+
+button.cham.secondary {
+  color: var(--cyan);
+  background: rgba(10, 28, 42, .88);
+  border: 1px solid rgba(95, 242, 255, .45);
+}
+
 /* =========================================================================
    Hangar
    ========================================================================= */
@@ -1186,46 +1203,341 @@ button.buy.max {
    Small screens
    ========================================================================= */
 
-@media (max-width: 720px) {
-  .hudbox {
-    min-width: 96px;
-    padding: 6px 10px;
+@media (max-width: 720px), (max-height: 500px) and (pointer: coarse) {
+  :root {
+    --cham: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
   }
 
-  #hud {
-    padding: 10px;
+  .desktopOnly,
+  .desktopCtrls {
+    display: none !important;
+  }
+
+  .mobileOnly {
+    display: flex;
+  }
+
+  .ov {
+    justify-content: flex-start;
+    gap: 14px;
+    padding: max(20px, env(safe-area-inset-top)) 14px max(20px, env(safe-area-inset-bottom));
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  #ovTitle {
+    justify-content: center;
+  }
+
+  .badge {
+    max-width: 100%;
+    padding: .65em 1em;
+    font-size: .52rem;
+    letter-spacing: .24em;
+    text-align: center;
+  }
+
+  .logo {
+    font-size: clamp(2.65rem, 16vw, 4.5rem);
+    -webkit-text-stroke-width: 1px;
+  }
+
+  .tag {
+    max-width: 92vw;
+    font-size: .58rem;
+    line-height: 1.6;
+    letter-spacing: .3em;
+  }
+
+  .mobileCtrls {
+    display: grid;
+    width: min(100%, 390px);
+    padding: 11px 13px;
+    grid-template-columns: auto 1fr;
+    gap: 9px 12px;
+    align-items: center;
+  }
+
+  .mobileCtrls b,
+  .mobileCtrls small {
+    display: block;
+  }
+
+  .mobileCtrls b {
+    color: var(--ink);
+    font-family: 'Orbitron';
+    font-size: .61rem;
+    letter-spacing: .12em;
+  }
+
+  .mobileCtrls small {
+    margin-top: 2px;
+    color: var(--dim);
+    font-size: .68rem;
+    letter-spacing: .04em;
+  }
+
+  .mobileControlIcon {
+    color: var(--cyan);
+    font-size: 1.15rem;
+    text-shadow: 0 0 10px var(--cyan-soft);
+  }
+
+  .titleBtns,
+  .overlayBtns,
+  .hangarBtns {
+    width: min(100%, 390px);
+  }
+
+  .titleBtns button,
+  .overlayBtns button,
+  .hangarBtns button {
+    min-height: 48px;
+  }
+
+  .titleBtns {
+    flex-direction: column;
     gap: 8px;
   }
 
+  button.start {
+    width: 100%;
+    padding: 14px 16px;
+    color: var(--bg);
+    background: linear-gradient(180deg, #ffd18c, var(--amber));
+    clip-path: var(--cham);
+    text-shadow: none;
+  }
+
+  .titleBtns .cham {
+    width: 100%;
+  }
+
+  .meta {
+    max-width: 94vw;
+    font-size: .58rem;
+    line-height: 1.75;
+    letter-spacing: .14em;
+  }
+
+  .hudbox {
+    min-width: 0;
+    padding: 5px 8px 6px;
+  }
+
+  #hud {
+    top: env(safe-area-inset-top);
+    padding: 7px 8px;
+    gap: 5px;
+    align-items: stretch;
+  }
+
+  #hud > .hudbox {
+    flex: 1 1 0;
+  }
+
+  .hudright {
+    flex: 2 1 0;
+    gap: 5px;
+  }
+
+  .hudright .hudbox {
+    flex: 1 1 0;
+  }
+
+  .lbl {
+    font-size: .5rem;
+    letter-spacing: .2em;
+  }
+
+  .val {
+    font-size: clamp(.72rem, 3vw, 1rem);
+  }
+
+  .hudbtn {
+    min-width: 42px;
+    min-height: 42px;
+    justify-content: center;
+    padding: 6px 8px;
+    font-size: 0;
+  }
+
+  #sndBtn .dot {
+    width: 9px;
+    height: 9px;
+    margin: 0;
+  }
+
+  #pauseBtn {
+    font-size: .72rem;
+  }
+
+  #hLives {
+    gap: 3px;
+    max-width: 70px;
+    justify-content: flex-start;
+  }
+
+  .pip {
+    width: 9px;
+    height: 11px;
+  }
+
   #boss {
-    top: 62px;
+    top: calc(env(safe-area-inset-top) + 58px);
     width: min(92vw, 520px);
   }
 
   #surge {
     top: auto;
-    bottom: 104px;
-    right: 12px;
-    width: 150px;
+    bottom: calc(76px + env(safe-area-inset-bottom));
+    right: 8px;
+    width: min(145px, 42vw);
+    padding: 7px 10px 9px;
   }
 
   #combo {
-    left: 12px;
-    bottom: 12px;
-    width: 170px;
+    left: 8px;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    width: min(155px, 44vw);
+    padding: 7px 10px 9px;
   }
 
   #chips {
-    right: 12px;
-    bottom: 12px;
+    right: 8px;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    gap: 5px;
   }
 
-  .ctrls {
-    font-size: .74rem;
-    gap: .55em 1em;
+  .chip {
+    gap: 6px;
+    padding: 5px 8px;
+    font-size: .54rem;
+  }
+
+  .chip .bar {
+    width: 42px;
+  }
+
+  #banner {
+    padding-inline: 14px;
+    font-size: clamp(1.5rem, 10vw, 2.8rem);
+    letter-spacing: .16em;
+    text-align: center;
+  }
+
+  #toasts {
+    bottom: calc(20vh + env(safe-area-inset-bottom));
+    width: calc(100% - 24px);
+  }
+
+  .toast {
+    max-width: 100%;
+    padding: 6px 12px;
+    font-size: .58rem;
+    letter-spacing: .14em;
+    text-align: center;
+  }
+
+  .stats {
+    width: min(100%, 390px);
+    padding: 14px 18px;
+    gap: .5em 1.2em;
+    font-size: .82rem;
+  }
+
+  .stats .val {
+    font-size: 1rem;
+  }
+
+  #ovHangar {
+    padding-inline: 8px;
   }
 
   #ovHangar .wrap {
+    width: 100%;
+    max-height: none;
+    padding: 10px;
+    gap: 11px;
+    overflow: visible;
+  }
+
+  .hangarTop {
+    gap: 8px;
+    padding: 9px 10px;
+  }
+
+  .hangarTop .lbl {
+    line-height: 1.4;
+  }
+
+  #shipGrid,
+  #settingsGrid,
+  #achGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .shipCard,
+  .setting,
+  .upRow,
+  .ach {
     padding: 12px;
+  }
+
+  .upRow {
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+  }
+
+  .upRow > div:first-child {
+    grid-column: 1 / -1;
+  }
+
+  button.buy {
+    min-width: 88px;
+    min-height: 42px;
+  }
+
+  .hangarBtns {
+    position: sticky;
+    bottom: 0;
+    padding: 8px;
+    background: rgba(4, 7, 15, .94);
+  }
+
+  .hangarBtns button {
+    flex: 1;
+    padding-inline: 1em;
+  }
+
+  #ovFatal .panel {
+    width: 100%;
+    padding: 20px 16px;
+  }
+
+  #ovFatal .why {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 390px), (max-height: 690px) and (max-width: 720px), (max-height: 500px) and (pointer: coarse) {
+  #ovTitle {
+    gap: 9px;
+  }
+
+  .badge {
+    font-size: .46rem;
+  }
+
+  .logo {
+    font-size: clamp(2.35rem, 14vw, 3.4rem);
+  }
+
+  .mobileCtrls {
+    padding-block: 8px;
+  }
+
+  .meta {
+    line-height: 1.5;
   }
 }
