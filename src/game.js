@@ -41,6 +41,10 @@ const HI_KEY = 'ionstorm.hi';
 const META_KEY = 'ionstorm.meta';
 const SETTINGS_KEY = 'ionstorm.settings';
 
+const INPUT_RESPONSE_MIN = 0.75;
+const INPUT_RESPONSE_MAX = 1.75;
+const DEFAULT_INPUT_RESPONSE = 1.25;
+
 /* =========================================================================
    Renderer / buffer constants
    ========================================================================= */
@@ -261,16 +265,27 @@ let SETTINGS = {
   muted: false,
   reduceFlash: false,
   reduceShake: false,
-  lowQuality: false
+  lowQuality: false,
+  inputResponse: DEFAULT_INPUT_RESPONSE
 };
 
 try {
   const storedSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
 
   for (const key of Object.keys(SETTINGS)) {
-    if (typeof storedSettings[key] === 'boolean') {
+    if (typeof SETTINGS[key] === 'boolean' && typeof storedSettings[key] === 'boolean') {
       SETTINGS[key] = storedSettings[key];
     }
+  }
+
+  const storedInputResponse = Number(storedSettings.inputResponse);
+
+  if (Number.isFinite(storedInputResponse)) {
+    SETTINGS.inputResponse = clamp(
+      storedInputResponse,
+      INPUT_RESPONSE_MIN,
+      INPUT_RESPONSE_MAX
+    );
   }
 } catch {
   /* Storage may be unavailable. Use defaults. */
@@ -464,6 +479,7 @@ const pointer = {
   x: 0,
   y: 0,
   down: false,
+  isTouch: false,
   lastMove: -9,
   lastTapAt: -999,
   lastTapX: 0,
@@ -3699,6 +3715,23 @@ const SETTING_CONTROLS = {
   lowQuality: ['settingQuality', 'settingQualityState']
 };
 
+function setInputResponse(value, playUi = false) {
+  const percent = Number(value);
+
+  if (!Number.isFinite(percent)) return;
+
+  SETTINGS.inputResponse = clamp(
+    percent / 100,
+    INPUT_RESPONSE_MIN,
+    INPUT_RESPONSE_MAX
+  );
+
+  saveSettings();
+  renderSettings();
+
+  if (playUi) AU.uiConfirm();
+}
+
 function renderSettings() {
   for (const [key, [buttonId, stateId]] of Object.entries(SETTING_CONTROLS)) {
     const enabled = !!SETTINGS[key];
@@ -3708,6 +3741,14 @@ function renderSettings() {
     button.setAttribute('aria-pressed', String(enabled));
     $(stateId).textContent = enabled ? 'ON' : 'OFF';
   }
+
+  const responsePercent = Math.round(SETTINGS.inputResponse * 100);
+  const responseRange = $('settingResponseRange');
+
+  responseRange.value = String(responsePercent);
+  responseRange.setAttribute('aria-valuenow', String(responsePercent));
+  responseRange.setAttribute('aria-valuetext', responsePercent + '%');
+  $('settingResponseState').textContent = responsePercent + '%';
 }
 
 function toggleSetting(key) {
@@ -4650,13 +4691,22 @@ function updatePlayer(dt) {
     (keys.has('w') || keys.has('arrowup') ? 1 : 0);
 
   const speedMult = p.speedMult * (G.surgeActive ? 1.6 : 1);
+  const inputResponse = SETTINGS.inputResponse;
 
-  p.vx += ax * 2400 * dt * speedMult;
-  p.vy += ay * 2400 * dt * speedMult;
+  p.vx += ax * 2400 * dt * speedMult * inputResponse;
+  p.vy += ay * 2400 * dt * speedMult * inputResponse;
 
   if (G.time - pointer.lastMove < 1.2) {
-    p.vx += ((pointer.x - p.x) * 16 - p.vx * 8) * dt;
-    p.vy += ((pointer.y - p.y) * 16 - p.vy * 8) * dt;
+    const pointerResponse = inputResponse * (pointer.isTouch ? 1.1 : 1);
+
+    p.vx += (
+      (pointer.x - p.x) * 16 * pointerResponse -
+      p.vx * 8 * pointerResponse
+    ) * dt;
+    p.vy += (
+      (pointer.y - p.y) * 16 * pointerResponse -
+      p.vy * 8 * pointerResponse
+    ) * dt;
   }
 
   const damp = Math.exp(-5 * dt);
@@ -5978,6 +6028,7 @@ addEventListener('keydown', e => {
   const interactiveTarget = target && target.closest(
     'button, input, select, textarea, dialog, [role="button"]'
   );
+  const rangeTarget = target && target.matches('input[type="range"]');
 
   if (
     k === 'tab' ||
@@ -5986,7 +6037,8 @@ addEventListener('keydown', e => {
     k === 'alt' ||
     k === 'meta' ||
     document.querySelector('dialog[open]') ||
-    (interactiveTarget && (k === 'enter' || k === ' '))
+    (interactiveTarget && (k === 'enter' || k === ' ')) ||
+    (rangeTarget && ['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k))
   ) {
     return;
   }
@@ -6076,6 +6128,7 @@ const cv = $('view');
 cv.addEventListener('pointermove', e => {
   pointer.x = e.clientX;
   pointer.y = e.clientY;
+  pointer.isTouch = e.pointerType === 'touch';
   pointer.lastMove = G.time;
 });
 
@@ -6090,6 +6143,7 @@ cv.addEventListener('pointerdown', e => {
   pointer.down = true;
   pointer.x = e.clientX;
   pointer.y = e.clientY;
+  pointer.isTouch = e.pointerType === 'touch';
   pointer.lastMove = G.time;
 
   if (G.state === 'title') {
@@ -6107,6 +6161,12 @@ cv.addEventListener('pointerdown', e => {
 
 addEventListener('pointerup', () => {
   pointer.down = false;
+  pointer.isTouch = false;
+});
+
+addEventListener('pointercancel', () => {
+  pointer.down = false;
+  pointer.isTouch = false;
 });
 
 $('sndBtn').addEventListener('click', e => {
@@ -6187,6 +6247,17 @@ for (const [key, [buttonId]] of Object.entries(SETTING_CONTROLS)) {
     toggleSetting(key);
   });
 }
+
+const responseRange = $('settingResponseRange');
+
+responseRange.addEventListener('input', () => {
+  setInputResponse(responseRange.value);
+});
+
+responseRange.addEventListener('change', () => {
+  AU.ensure();
+  setInputResponse(responseRange.value, true);
+});
 
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && G.state === 'playing') {

@@ -22,7 +22,7 @@ It uses WebGPU when available and falls back to WebGL2 automatically, so the sam
 - Three ships with distinct speed, hull, shield, and firing profiles
 - Persistent scrap, upgrades, pilot profile, local records, and statistics
 - Procedural sound effects and music with accessible mute controls
-- Reduced flash, reduced shake, contrast, and low-quality performance settings
+- Reduced flash, reduced shake, contrast, low-quality, and input-response settings
 - A responsive interface for desktop, portrait mobile, and landscape mobile play
 
 ## Controls
@@ -39,6 +39,7 @@ It uses WebGPU when available and falls back to WebGL2 automatically, so the sam
 | Relaunch after a run | `R` or `Enter` | Tap **RELAUNCH** |
 
 Visual and performance preferences are saved locally in the browser.
+The Hangar's **INPUT RESPONSE** slider tunes touch, pointer, and keyboard steering from 75% (precise) to 175% (fast), with 125% as the default.
 
 ## Run locally
 

@@ -63,6 +63,16 @@ test('responsive rules cover phone safe areas and short landscape screens', () =
   assert.match(CSS, /min-height: 48px/);
 });
 
+test('input response control covers touch and keyboard steering', () => {
+  assert.match(HTML, /id="settingResponseRange"/);
+  assert.match(HTML, /min="75"\s+max="175"\s+step="5"/);
+  assert.match(GAME_SOURCE, /inputResponse/);
+  assert.match(GAME_SOURCE, /pointer\.isTouch/);
+  assert.match(GAME_SOURCE, /setInputResponse\(responseRange\.value/);
+  assert.match(GAME_SOURCE, /p\.vx \+= ax \* 2400 \* dt \* speedMult \* inputResponse/);
+  assert.match(GAME_SOURCE, /rangeTarget && \['arrowup', 'arrowdown', 'arrowleft', 'arrowright'\]/);
+});
+
 test('keyboard navigation cannot accidentally launch or activate menu actions', () => {
   assert.match(GAME_SOURCE, /k === 'tab'/);
   assert.match(GAME_SOURCE, /interactiveTarget && \(k === 'enter' \|\| k === ' '\)/);

@@ -33,7 +33,7 @@ Persistent values are intentionally local to the browser:
 | --- | --- |
 | `ionstorm.hi` | best score |
 | `ionstorm.meta` | selected ship, scrap, upgrades, and achievements |
-| `ionstorm.settings` | audio, visual-intensity, and quality preferences |
+| `ionstorm.settings` | audio, visual-intensity, quality, and input-response preferences |
 | `ionstorm.profile` | pilot callsign and local profile identity |
 | `ionstorm.board` | the local top-ten records list |
 | `ionstorm.stats` | aggregate pilot statistics |
@@ -45,6 +45,7 @@ The local records list is not a server leaderboard and is not tamper-proof. No a
 - Keyboard controls support movement, SURGE, pause, sound, hangar, and relaunch actions.
 - Pointer input lets desktop players steer the ship directly.
 - Touch input uses the same pointer path, adds a visible SURGE control, and provides touch actions for overlays that would otherwise be keyboard-only.
+- The Hangar's input-response setting changes steering convergence and keyboard acceleration without changing the selected ship's base speed.
 - Focus management uses `inert`, ARIA labels, visible focus styles, and explicit button types so inactive overlays do not trap keyboard users.
 
 ## Validation model
