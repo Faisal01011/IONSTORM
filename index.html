@@ -263,8 +263,8 @@
           <div class="sectionHeading">
             <span class="sectionIndex">03</span>
             <div>
-              <h3 id="settingsHeading">ACCESSIBILITY &amp; PERFORMANCE</h3>
-              <p>Adjust visual intensity and rendering load for your device.</p>
+              <h3 id="settingsHeading">ACCESSIBILITY, PERFORMANCE &amp; CONTROL</h3>
+              <p>Adjust visual intensity, rendering load, and flight response.</p>
             </div>
           </div>
           <div id="settingsGrid">
@@ -285,6 +285,36 @@
               <span class="settingDesc">Lower render resolution for slower devices</span>
               <span class="settingState" id="settingQualityState">OFF</span>
             </button>
+
+            <div class="setting settingRange panel" id="settingResponse">
+              <div class="settingRangeTop">
+                <div>
+                  <span class="settingName">INPUT RESPONSE</span>
+                  <span class="settingDesc">Tune touch, pointer, and keyboard steering speed</span>
+                </div>
+                <output class="settingState" id="settingResponseState" for="settingResponseRange">125%</output>
+              </div>
+
+              <input
+                type="range"
+                class="settingRangeControl"
+                id="settingResponseRange"
+                min="75"
+                max="175"
+                step="5"
+                value="125"
+                aria-label="Input response"
+                aria-valuemin="75"
+                aria-valuemax="175"
+                aria-valuenow="125"
+                aria-valuetext="125%"
+              >
+
+              <div class="settingScale" aria-hidden="true">
+                <span>PRECISE</span>
+                <span>FAST</span>
+              </div>
+            </div>
           </div>
         </section>
 

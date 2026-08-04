@@ -159,7 +159,11 @@ function makeHarness() {
       enemyIsTargetable,
       nearestEnemy,
       updateWorld,
+      updatePlayer,
+      pointer,
+      keys,
       toggleSetting,
+      setInputResponse,
       getQuality: () => quality,
       setQuality: value => { quality = value; }
     };
@@ -310,6 +314,58 @@ test('low-quality mode actually scales the backing canvas', () => {
   api.toggleSetting('lowQuality');
   assert.equal(api.SETTINGS.lowQuality, true);
   assert.equal(api.getQuality(), 0.66);
+});
+
+test('input response is clamped, persisted, and speeds both control paths', () => {
+  const { api, context } = makeHarness();
+
+  api.resize();
+  api.G.time = 1;
+  api.G.player.alive = true;
+  api.G.player.x = 300;
+  api.G.player.y = 500;
+  api.pointer.x = 700;
+  api.pointer.y = 500;
+  api.pointer.lastMove = 1;
+  api.pointer.isTouch = true;
+
+  api.setInputResponse(75);
+  api.updatePlayer(0.016);
+  const slowTouchVelocity = api.G.player.vx;
+
+  api.G.player.x = 300;
+  api.G.player.vx = 0;
+  api.setInputResponse(175);
+  api.updatePlayer(0.016);
+  const fastTouchVelocity = api.G.player.vx;
+
+  assert.ok(fastTouchVelocity > slowTouchVelocity);
+  assert.equal(api.SETTINGS.inputResponse, 1.75);
+  assert.equal(
+    JSON.parse(context.localStorage.getItem('ionstorm.settings')).inputResponse,
+    1.75
+  );
+
+  api.pointer.lastMove = -9;
+  api.pointer.isTouch = false;
+  api.keys.add('d');
+  api.G.player.vx = 0;
+  api.setInputResponse(75);
+  api.updatePlayer(0.016);
+  const slowKeyboardVelocity = api.G.player.vx;
+
+  api.G.player.vx = 0;
+  api.setInputResponse(175);
+  api.updatePlayer(0.016);
+  const fastKeyboardVelocity = api.G.player.vx;
+
+  assert.ok(fastKeyboardVelocity > slowKeyboardVelocity);
+
+  api.setInputResponse(999);
+  assert.equal(api.SETTINGS.inputResponse, 1.75);
+
+  api.setInputResponse(0);
+  assert.equal(api.SETTINGS.inputResponse, 0.75);
 });
 
 test('unmuting resynchronizes procedural music instead of catching up', () => {
