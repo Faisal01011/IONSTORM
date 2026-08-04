@@ -30,7 +30,7 @@
       const raw = localStorage.getItem(key);
       if (!raw) return fallback;
       return JSON.parse(raw) || fallback;
-    } catch (err) {
+    } catch {
       return fallback;
     }
   }
@@ -38,7 +38,7 @@
   function saveJSON(key, value) {
     try {
       localStorage.setItem(key, JSON.stringify(value));
-    } catch (err) {
+    } catch {
       /* Ignore storage failures. */
     }
   }
@@ -63,23 +63,27 @@
       .replace(/'/g, '&#39;');
   }
 
+  function nonNegativeInt(value, fallback = 0) {
+    const n = Number(value);
+    return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
+  }
+
   /* =======================================================================
      Profile / board / stats state
      ======================================================================= */
 
-  let PROFILE = Object.assign({
+  const PROFILE = Object.assign({
     pilotId: uid(),
     callsign: 'PILOT',
     createdAt: Date.now()
   }, loadJSON(PROFILE_KEY, {}));
 
-  if (!PROFILE.pilotId) {
+  if (typeof PROFILE.pilotId !== 'string' || !PROFILE.pilotId) {
     PROFILE.pilotId = uid();
   }
 
-  if (!PROFILE.callsign) {
-    PROFILE.callsign = 'PILOT';
-  }
+  PROFILE.callsign = cleanCallsign(PROFILE.callsign);
+  PROFILE.createdAt = nonNegativeInt(PROFILE.createdAt, Date.now());
 
   let BOARD = loadJSON(BOARD_KEY, []);
 
@@ -87,16 +91,44 @@
     BOARD = [];
   }
 
-  let STATS = Object.assign({
-    runs: 0,
-    totalKills: 0,
-    bestScore: 0,
-    bestWave: 0,
-    bestCombo: 0,
-    bossKills: 0,
-    asteroidKills: 0,
-    surgeActivations: 0
-  }, loadJSON(STATS_KEY, {}));
+  BOARD = BOARD
+    .filter(entry => entry && typeof entry === 'object')
+    .map(entry => ({
+      id: typeof entry.id === 'string' && entry.id ? entry.id : uid(),
+      pilotId: typeof entry.pilotId === 'string' ? entry.pilotId : '',
+      name: cleanCallsign(entry.name),
+      score: nonNegativeInt(entry.score),
+      wave: nonNegativeInt(entry.wave, 1),
+      kills: nonNegativeInt(entry.kills),
+      maxCombo: nonNegativeInt(entry.maxCombo),
+      ship: ['vanguard', 'interceptor', 'bastion'].includes(entry.ship)
+        ? entry.ship
+        : 'vanguard',
+      date: nonNegativeInt(entry.date, Date.now())
+    }))
+    .sort((a, b) => (
+      b.score - a.score ||
+      b.wave - a.wave ||
+      b.kills - a.kills ||
+      a.date - b.date
+    ))
+    .slice(0, 10);
+
+  const storedStats = loadJSON(STATS_KEY, {});
+  const STATS = {};
+
+  [
+    'runs',
+    'totalKills',
+    'bestScore',
+    'bestWave',
+    'bestCombo',
+    'bossKills',
+    'asteroidKills',
+    'surgeActivations'
+  ].forEach(key => {
+    STATS[key] = nonNegativeInt(storedStats && storedStats[key]);
+  });
 
   function saveProfileData() {
     saveJSON(PROFILE_KEY, PROFILE);
@@ -289,8 +321,8 @@
       </div>
 
       <div class="profileBtns">
-        <button class="cham" id="profileSaveBtn">SAVE</button>
-        <button class="cham" id="profileBackBtn">BACK</button>
+        <button type="button" class="cham" id="profileSaveBtn">SAVE</button>
+        <button type="button" class="cham" id="profileBackBtn">BACK</button>
       </div>
     </div>
   `);
@@ -306,9 +338,9 @@
       <div id="pilotStats" class="statsGrid"></div>
 
       <div class="recordsBtns">
-        <button class="cham" id="recordsBackBtn">BACK</button>
-        <button class="cham" id="recordsProfileBtn">EDIT PILOT</button>
-        <button class="cham" id="recordsClearBtn">CLEAR RECORDS</button>
+        <button type="button" class="cham" id="recordsBackBtn">BACK</button>
+        <button type="button" class="cham" id="recordsProfileBtn">EDIT PILOT</button>
+        <button type="button" class="cham" id="recordsClearBtn">CLEAR RECORDS</button>
       </div>
     </div>
   `);
@@ -331,10 +363,12 @@
 
   if (titleBtns) {
     const profileBtn = document.createElement('button');
+    profileBtn.type = 'button';
     profileBtn.className = 'cham';
     profileBtn.textContent = 'PILOT';
 
     const recordsBtn = document.createElement('button');
+    recordsBtn.type = 'button';
     recordsBtn.className = 'cham';
     recordsBtn.textContent = 'RECORDS';
 
@@ -350,10 +384,12 @@
 
   if (hangarBtns) {
     const profileBtn = document.createElement('button');
+    profileBtn.type = 'button';
     profileBtn.className = 'cham';
     profileBtn.textContent = 'PILOT';
 
     const recordsBtn = document.createElement('button');
+    recordsBtn.type = 'button';
     recordsBtn.className = 'cham';
     recordsBtn.textContent = 'RECORDS';
 
@@ -382,6 +418,7 @@
     wrap.className = 'overExtraBtns';
 
     const recordsBtn = document.createElement('button');
+    recordsBtn.type = 'button';
     recordsBtn.className = 'cham';
     recordsBtn.textContent = 'RECORDS';
 
@@ -722,7 +759,7 @@
   /* Track kills by type */
   const _killEnemy = window.killEnemy;
 
-  window.killEnemy = function (e, i) {
+  window.killEnemy = function (e) {
     if (e && e.type) {
       STATS.totalKills++;
 
@@ -785,6 +822,8 @@
      ======================================================================= */
 
   saveProfileData();
+  saveBoard();
+  saveStats();
 
   if (window.updateTitleMeta) {
     updateTitleMeta();

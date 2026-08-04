@@ -4,6 +4,8 @@
   "private": true,
   "description": "A neon WebGPU arcade shooter with a WebGL2 fallback.",
   "scripts": {
-    "check": "node --check game.js && node --check profile.js"
+    "check": "npm run check:syntax && npm test",
+    "check:syntax": "node --check game.js && node --check profile.js",
+    "test": "node --test tests/*.test.js"
   }
 }

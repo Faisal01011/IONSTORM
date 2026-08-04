@@ -298,6 +298,7 @@ button.cham:focus-visible {
 }
 
 .hudbtn {
+  appearance: none;
   pointer-events: auto;
   cursor: pointer;
   padding: 8px 14px;
@@ -312,6 +313,11 @@ button.cham:focus-visible {
 
 .hudbtn:hover {
   color: var(--cyan);
+}
+
+.hudbtn:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 3px;
 }
 
 #sndBtn .dot {
@@ -741,7 +747,6 @@ button.cham:focus-visible {
   font-size: clamp(3.2rem, 13vw, 8rem);
   color: transparent;
   -webkit-text-stroke: 2px #67e8ff;
-  text-stroke: 2px #67e8ff;
   text-shadow: 0 0 38px rgba(90, 230, 255, .3);
   text-align: center;
 }
@@ -786,6 +791,18 @@ button.cham:focus-visible {
   color: var(--amber);
   text-shadow: 0 0 16px rgba(255, 180, 84, .5);
   cursor: pointer;
+}
+
+button.start {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+button.start:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 8px;
 }
 
 .meta {
@@ -941,8 +958,14 @@ h2.hold {
 }
 
 .shipCard {
+  appearance: none;
+  width: 100%;
   padding: 12px;
   cursor: pointer;
+  color: inherit;
+  background: var(--panel);
+  font: inherit;
+  text-align: left;
   transition:
     transform .12s,
     box-shadow .12s,
@@ -957,6 +980,13 @@ h2.hold {
 .shipCard.sel {
   border-color: var(--cyan);
   box-shadow: 0 0 18px rgba(95, 242, 255, .18);
+}
+
+.shipCard:focus-visible,
+button.buy:focus-visible,
+.setting:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 3px;
 }
 
 .shipName {
@@ -983,13 +1013,63 @@ h2.hold {
 }
 
 #upGrid,
-#achGrid {
+#achGrid,
+#settingsGrid {
   display: grid;
   gap: 8px;
 }
 
 #achGrid {
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+#settingsGrid {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.setting {
+  appearance: none;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  align-items: center;
+  padding: 10px 12px;
+  color: inherit;
+  background: var(--panel);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.setting.on {
+  border-color: rgba(95, 242, 255, .7);
+  box-shadow: 0 0 16px rgba(95, 242, 255, .12);
+}
+
+.settingName {
+  font-family: 'Orbitron';
+  font-size: .66rem;
+  letter-spacing: .12em;
+}
+
+.settingDesc {
+  grid-column: 1;
+  color: var(--dim);
+  font-size: .7rem;
+  letter-spacing: .04em;
+}
+
+.settingState {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  color: var(--dim);
+  font-family: 'Orbitron';
+  font-size: .62rem;
+  letter-spacing: .1em;
+}
+
+.setting.on .settingState {
+  color: var(--cyan);
 }
 
 .upRow {
@@ -1086,6 +1166,20 @@ button.buy.max {
   place-items: center;
   color: #8fb4c9;
   font-family: sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blink,
+  #fx-roll,
+  .badge .pulse {
+    animation: none;
+  }
+
+  .ov,
+  #flash,
+  #fx-bloom {
+    transition: none;
+  }
 }
 
 /* =========================================================================

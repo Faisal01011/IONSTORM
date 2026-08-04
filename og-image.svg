@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#02050d"/>
+      <stop offset="0.55" stop-color="#071426"/>
+      <stop offset="1" stop-color="#180812"/>
+    </linearGradient>
+    <radialGradient id="cyanGlow" cx="0.25" cy="0.35" r="0.75">
+      <stop offset="0" stop-color="#5ff2ff" stop-opacity="0.3"/>
+      <stop offset="1" stop-color="#5ff2ff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="amberGlow" cx="0.78" cy="0.58" r="0.65">
+      <stop offset="0" stop-color="#ff7a3c" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#ff7a3c" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="storm" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffb454"/>
+      <stop offset="1" stop-color="#ff5c47"/>
+    </linearGradient>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" fill="none" stroke="#5ff2ff" stroke-opacity="0.07" stroke-width="1"/>
+    </pattern>
+    <filter id="glow" x="-40%" y="-80%" width="180%" height="260%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#cyanGlow)"/>
+  <rect width="1200" height="630" fill="url(#amberGlow)"/>
+  <rect x="32" y="32" width="1136" height="566" fill="url(#grid)" stroke="#5ff2ff" stroke-opacity="0.24" stroke-width="2"/>
+
+  <g fill="#dffbff">
+    <circle cx="110" cy="108" r="2" opacity="0.8"/>
+    <circle cx="1048" cy="126" r="3" opacity="0.7"/>
+    <circle cx="986" cy="478" r="2" opacity="0.55"/>
+    <circle cx="208" cy="506" r="2.5" opacity="0.6"/>
+    <circle cx="880" cy="82" r="1.5" opacity="0.7"/>
+    <circle cx="334" cy="148" r="1.5" opacity="0.5"/>
+  </g>
+
+  <path d="M72 91h210l18 18h164" fill="none" stroke="#5ff2ff" stroke-opacity="0.58" stroke-width="3"/>
+  <path d="M1128 539H918l-18-18H736" fill="none" stroke="#ffb454" stroke-opacity="0.62" stroke-width="3"/>
+
+  <text x="600" y="294" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="134" font-weight="900" font-style="italic" letter-spacing="-3" fill="#eafcff" filter="url(#glow)">ION<tspan fill="url(#storm)">STORM</tspan></text>
+  <rect x="322" y="332" width="556" height="3" fill="#5ff2ff" opacity="0.65"/>
+  <text x="600" y="391" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="28" font-weight="700" letter-spacing="9" fill="#a8cadd">DEFEND THE VEIL · RIDE THE SURGE</text>
+
+  <g transform="translate(600 485)">
+    <path d="M0-50 17-12 57 4 19 18 0 52-19 18-57 4-17-12Z" fill="#071a28" stroke="#5ff2ff" stroke-width="3"/>
+    <path d="M0-37 8-4 29 5 9 12 0 35-9 12-29 5-8-4Z" fill="#5ff2ff" opacity="0.88" filter="url(#glow)"/>
+    <path d="M-10 47 0 76 10 47" fill="#ffb454" opacity="0.9" filter="url(#glow)"/>
+  </g>
+
+  <text x="78" y="564" font-family="DejaVu Sans, sans-serif" font-size="17" font-weight="700" letter-spacing="4" fill="#5ff2ff">WEBGPU // ARCADE</text>
+  <text x="1122" y="564" text-anchor="end" font-family="DejaVu Sans, sans-serif" font-size="17" font-weight="700" letter-spacing="4" fill="#ffb454">SURGE READY</text>
+</svg>
