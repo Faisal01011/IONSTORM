@@ -7,7 +7,7 @@ const test = require('node:test');
 const vm = require('node:vm');
 
 const ROOT = path.resolve(__dirname, '..');
-const GAME_SOURCE = fs.readFileSync(path.join(ROOT, 'game.js'), 'utf8');
+const GAME_SOURCE = fs.readFileSync(path.join(ROOT, 'src', 'game.js'), 'utf8');
 const BOOT_START = GAME_SOURCE.lastIndexOf('(async () => {');
 
 assert.notEqual(BOOT_START, -1, 'game boot entry point must remain discoverable');
