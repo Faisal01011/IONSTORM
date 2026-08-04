@@ -1,0 +1,10 @@
+# Operating-system and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Local development output
+node_modules/
+dist/
+build/
+*.log

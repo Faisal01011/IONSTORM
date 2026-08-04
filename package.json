@@ -1,0 +1,9 @@
+{
+  "name": "ionstorm",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A neon WebGPU arcade shooter with a WebGL2 fallback.",
+  "scripts": {
+    "check": "node --check game.js && node --check profile.js"
+  }
+}
