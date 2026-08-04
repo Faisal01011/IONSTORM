@@ -3993,7 +3993,7 @@ function startWave(n) {
     return;
   }
 
-  G.waveQ = Math.min(8 + n * 3, 46);
+  G.waveQ = waveProfile(n).count;
   G.spawnT = 1.1;
   G.waveState = 'spawning';
 
@@ -4001,12 +4001,30 @@ function startWave(n) {
   AU.waveSnd();
 }
 
+/* Keep the late-run threat curve moving instead of letting enemy count and
+   enemy durability flatten after the first few waves. */
+function waveProfile(n = G.wave) {
+  const wave = Math.max(1, Math.floor(n));
+  const progress = wave - 1;
+
+  return {
+    count: Math.min(10 + wave * 3 + Math.floor(wave / 5), 58),
+    speed: 1 + Math.min(0.5, progress * 0.03),
+    spawnGap: Math.max(0.3, 1.15 - wave * 0.055),
+    droneHp: 1 + Math.floor(progress / 8),
+    strikerHp: 2 + Math.floor(progress / 7),
+    asteroidHp: 8 + Math.floor(wave * 0.8),
+    tankHp: 7 + Math.floor(wave * 0.65),
+    fireFloor: Math.max(0.82, 1.2 - progress * 0.025)
+  };
+}
+
 function pickType() {
   const r = Math.random();
 
-  const ast = Math.min(0.05 + G.wave * 0.01, 0.16);
-  const tank = Math.min(0.05 + G.wave * 0.02, 0.24);
-  const stri = Math.min(0.14 + G.wave * 0.03, 0.4);
+  const ast = Math.min(0.06 + G.wave * 0.008, 0.18);
+  const tank = Math.min(0.06 + G.wave * 0.022, 0.3);
+  const stri = Math.min(0.16 + G.wave * 0.034, 0.46);
 
   if (r < ast) return 'asteroid';
 
@@ -4019,6 +4037,7 @@ function spawnEnemy() {
   if (G.enemies.length > 70) return;
 
   const type = pickType();
+  const threat = waveProfile();
 
   const e = {
     type,
@@ -4030,31 +4049,31 @@ function spawnEnemy() {
   };
 
   if (type === 'drone') {
-    e.hp = 1;
+    e.hp = threat.droneHp;
     e.r = 24;
     e.baseX = e.x;
     e.amp = rand(40, 120);
     e.freq = rand(1.2, 2.2);
-    e.vy = rand(70, 100) + G.wave * 3;
+    e.vy = (rand(70, 100) + G.wave * 3) * threat.speed;
     e.val = 100;
   } else if (type === 'striker') {
-    e.hp = 2;
+    e.hp = threat.strikerHp;
     e.r = 22;
-    e.vy = rand(120, 160) + G.wave * 4;
+    e.vy = (rand(120, 160) + G.wave * 4) * threat.speed;
     e.val = 250;
   } else if (type === 'asteroid') {
-    e.hp = 8 + Math.floor(G.wave * 0.8);
+    e.hp = threat.asteroidHp;
     e.r = rand(26, 44);
-    e.vy = rand(45, 85) + G.wave * 2;
+    e.vy = (rand(45, 85) + G.wave * 2) * threat.speed;
     e.vx = rand(-35, 35);
     e.rot = rand(0, TAU);
     e.vr = rand(-1.1, 1.1);
     e.val = 150;
     e.fireT = 9999;
   } else {
-    e.hp = 7 + Math.floor(G.wave / 2);
+    e.hp = threat.tankHp;
     e.r = 36;
-    e.vy = 34 + G.wave;
+    e.vy = (34 + G.wave) * threat.speed;
     e.val = 600;
   }
 
@@ -4067,7 +4086,7 @@ function enemyFire(e) {
 
   const dx = p.x - e.x;
   const dy = p.y - e.y;
-  const spd = Math.min(150 + G.wave * 6, 330);
+  const spd = Math.min(155 + G.wave * 7, 360);
 
   const shot = ang => {
     const a = Math.atan2(dy, dx) + ang;
@@ -4094,6 +4113,8 @@ function nearestEnemy(x, y) {
   let bd = 1e18;
 
   for (const e of G.enemies) {
+    if (!enemyIsTargetable(e)) continue;
+
     const d = (e.x - x) * (e.x - x) + (e.y - y) * (e.y - y);
     if (d < bd) {
       bd = d;
@@ -4102,6 +4123,11 @@ function nearestEnemy(x, y) {
   }
 
   return best;
+}
+
+function enemyIsTargetable(e) {
+  if (e.type === 'boss') return e.entered === true;
+  return e.y >= Math.max(e.r || 0, 0);
 }
 
 /* =========================================================================
@@ -4208,6 +4234,7 @@ function spawnBossAdd(e) {
   if (G.enemies.length > 56) return;
 
   const type = Math.random() < 0.72 ? 'drone' : 'striker';
+  const threat = waveProfile();
 
   const a = {
     type,
@@ -4219,17 +4246,17 @@ function spawnBossAdd(e) {
   };
 
   if (type === 'drone') {
-    a.hp = 1;
+    a.hp = threat.droneHp;
     a.r = 24;
     a.baseX = a.x;
     a.amp = rand(36, 100);
     a.freq = rand(1.2, 2.2);
-    a.vy = rand(82, 116) + G.wave * 3;
+    a.vy = (rand(82, 116) + G.wave * 3) * threat.speed;
     a.val = 100;
   } else {
-    a.hp = 2;
+    a.hp = threat.strikerHp;
     a.r = 22;
-    a.vy = rand(132, 172) + G.wave * 4;
+    a.vy = (rand(132, 172) + G.wave * 4) * threat.speed;
     a.val = 250;
   }
 
@@ -4783,7 +4810,7 @@ function updateWaves(dt) {
     if (G.spawnT <= 0 && G.waveQ > 0) {
       spawnEnemy();
       G.waveQ--;
-      G.spawnT = Math.max(0.32, 1.15 - G.wave * 0.055) * rand(0.6, 1.3);
+      G.spawnT = waveProfile().spawnGap * rand(0.72, 1.18);
     }
 
     if (G.waveQ <= 0) {
@@ -4867,7 +4894,10 @@ function updateWorld(dt) {
       for (let j = G.enemies.length - 1; j >= 0; j--) {
         const e = G.enemies[j];
 
-        if (Math.hypot(e.x - m.x, e.y - m.y) < e.r + 10) {
+        if (
+          enemyIsTargetable(e) &&
+          Math.hypot(e.x - m.x, e.y - m.y) < e.r + 10
+        ) {
           e.hp -= 3;
           e.flash = 1;
           dead = true;
@@ -4981,7 +5011,7 @@ function updateWorld(dt) {
             e.type === 'striker' ? 2.0 :
             3.0;
 
-          e.fireT = Math.max(1.2, base - G.wave * 0.06) * rand(0.75, 1.3);
+          e.fireT = Math.max(waveProfile().fireFloor, base - G.wave * 0.06) * rand(0.75, 1.25);
         }
       }
 
@@ -5104,7 +5134,10 @@ function updateWorld(dt) {
       for (let j = G.enemies.length - 1; j >= 0; j--) {
         const e = G.enemies[j];
 
-        if (Math.hypot(b.x - e.x, b.y - e.y) < e.r + b.r) {
+        if (
+          enemyIsTargetable(e) &&
+          Math.hypot(b.x - e.x, b.y - e.y) < e.r + b.r
+        ) {
           G.bullets.splice(i, 1);
           hit = true;
 

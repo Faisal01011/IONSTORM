@@ -155,6 +155,10 @@ function makeHarness() {
       resetRun,
       gameOver,
       resize,
+      waveProfile,
+      enemyIsTargetable,
+      nearestEnemy,
+      updateWorld,
       toggleSetting,
       getQuality: () => quality,
       setQuality: value => { quality = value; }
@@ -195,6 +199,78 @@ test('ship fire stats translate to the advertised cooldown order', () => {
   assert.ok(cooldowns.vanguard < cooldowns.bastion);
   assert.ok(Math.abs(cooldowns.interceptor - 0.108) < 1e-12);
   assert.ok(Math.abs(cooldowns.bastion - 0.16875) < 1e-12);
+});
+
+test('wave threat continues to rise after the early run', () => {
+  const { api } = makeHarness();
+  const early = api.waveProfile(1);
+  const mid = api.waveProfile(10);
+  const late = api.waveProfile(25);
+
+  assert.ok(mid.count > early.count);
+  assert.ok(late.count > mid.count);
+  assert.ok(mid.speed > early.speed);
+  assert.ok(late.speed > mid.speed);
+  assert.ok(mid.droneHp > early.droneHp);
+  assert.ok(late.strikerHp > mid.strikerHp);
+  assert.ok(late.fireFloor < early.fireFloor);
+  assert.ok(late.count <= 58);
+});
+
+test('enemies cannot be destroyed or targeted before entering the playfield', () => {
+  const { api } = makeHarness();
+  const offscreen = { type: 'drone', x: 100, y: -60, r: 24 };
+  const visible = { type: 'drone', x: 300, y: 30, r: 24 };
+  const enteringBoss = { type: 'boss', x: 200, y: -80, r: 105, entered: false };
+  const activeBoss = { type: 'boss', x: 200, y: 150, r: 105, entered: true };
+
+  assert.equal(api.enemyIsTargetable(offscreen), false);
+  assert.equal(api.enemyIsTargetable(visible), true);
+  assert.equal(api.enemyIsTargetable(enteringBoss), false);
+  assert.equal(api.enemyIsTargetable(activeBoss), true);
+
+  api.G.enemies.push(offscreen, visible);
+  assert.equal(api.nearestEnemy(100, -60), visible);
+});
+
+test('projectiles wait for an enemy to enter the playfield before colliding', () => {
+  const { api } = makeHarness();
+  const enemy = {
+    type: 'drone',
+    x: 300,
+    y: -20,
+    r: 24,
+    hp: 1,
+    baseX: 300,
+    amp: 0,
+    freq: 1,
+    vy: 80,
+    t: 0,
+    flash: 0,
+    fireT: 9999,
+    val: 100
+  };
+
+  api.resize();
+  api.G.state = 'playing';
+  api.G.player.alive = true;
+  api.G.player.x = 600;
+  api.G.player.y = 520;
+  api.G.enemies.push(enemy);
+  api.G.bullets.push({ x: 300, y: -20, vx: 0, vy: 0, r: 6 });
+
+  api.updateWorld(0);
+
+  assert.equal(api.G.enemies.length, 1);
+  assert.equal(api.G.enemies[0].hp, 1);
+  assert.equal(api.G.bullets.length, 1);
+
+  enemy.y = 30;
+  api.G.bullets[0].y = 30;
+  api.updateWorld(0);
+
+  assert.equal(api.G.enemies.length, 0);
+  assert.equal(api.G.bullets.length, 0);
 });
 
 test('a tied score is not announced as a new record', () => {
