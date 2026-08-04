@@ -162,29 +162,49 @@
   style.textContent = `
     #ovProfile .profileBox,
     #ovRecords .recordsBox {
-      width: min(680px, 94vw);
-      max-height: 88vh;
+      width: min(720px, 100%);
+      max-height: min(88dvh, 820px);
       overflow: auto;
-      padding: 22px;
+      margin: auto;
+      padding: clamp(24px, 4vw, 36px);
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 16px;
       align-items: center;
+      text-align: center;
+      box-shadow: var(--shadow-panel), var(--shadow-cyan);
+      scrollbar-color: rgba(95, 242, 255, .38) rgba(2, 8, 15, .45);
+      scrollbar-width: thin;
+    }
+
+    #ovRecords .recordsBox {
+      width: min(900px, 100%);
+    }
+
+    .profileLead {
+      max-width: 460px;
+      color: var(--dim);
+      font-size: .9rem;
+      line-height: 1.45;
+      letter-spacing: .04em;
     }
 
     .profileInput {
       width: 100%;
-      max-width: 340px;
-      background: rgba(4, 12, 20, .82);
+      max-width: 390px;
+      min-height: 50px;
+      background: rgba(2, 8, 15, .78);
       border: 1px solid var(--line);
       color: var(--ink);
       font-family: 'Orbitron';
+      font-size: .78rem;
       letter-spacing: .18em;
       text-transform: uppercase;
       padding: .85em 1em;
       clip-path: var(--cham);
       outline: none;
       text-align: center;
+      caret-color: var(--cyan);
     }
 
     .profileInput:focus {
@@ -194,96 +214,239 @@
 
     .profileBtns,
     .recordsBtns {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      flex-wrap: wrap;
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .profileBtns {
+      max-width: 390px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .profileBtns .cham,
+    .recordsBtns .cham {
+      width: 100%;
+      min-width: 0;
+      padding-inline: .75em;
     }
 
     .recordsList {
       width: 100%;
       display: grid;
-      gap: 6px;
-      max-height: 36vh;
-      overflow: auto;
+      gap: 7px;
+      max-height: 38dvh;
+      overflow-x: hidden;
+      overflow-y: auto;
       padding-right: 4px;
+      text-align: left;
+      scrollbar-color: rgba(95, 242, 255, .38) rgba(2, 8, 15, .45);
+      scrollbar-width: thin;
+      overscroll-behavior: contain;
     }
 
     .recordRow {
       display: grid;
-      grid-template-columns: 42px 1fr auto;
-      gap: 10px;
+      grid-template-columns: 42px minmax(0, 1fr) auto;
+      gap: 12px;
       align-items: center;
-      padding: 9px 12px;
+      padding: 11px 13px;
     }
 
     .recordRow.me {
       border-color: rgba(255, 180, 84, .55);
-      box-shadow: 0 0 16px rgba(255, 180, 84, .12);
+      background:
+        linear-gradient(90deg, rgba(255, 180, 84, .08), transparent 58%),
+        var(--panel);
+      box-shadow: 0 0 16px rgba(255, 180, 84, .1);
     }
 
     .recordRank {
       font-family: 'Orbitron';
       color: var(--amber);
-      font-size: .72rem;
+      font-size: .7rem;
       letter-spacing: .1em;
     }
 
     .recordName {
       font-family: 'Orbitron';
-      font-size: .68rem;
-      letter-spacing: .12em;
+      font-size: .66rem;
+      letter-spacing: .1em;
     }
 
     .recordSub {
       font-family: 'Rajdhani';
       color: var(--dim);
-      font-size: .72rem;
-      letter-spacing: .12em;
+      font-size: .7rem;
+      line-height: 1.3;
+      letter-spacing: .075em;
       margin-top: 3px;
     }
 
     .recordScore {
       font-family: 'Orbitron';
       color: var(--cyan);
-      font-size: .78rem;
-      letter-spacing: .08em;
+      font-size: .74rem;
+      letter-spacing: .06em;
     }
 
     .statsGrid {
       width: 100%;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 8px;
     }
 
     .statBox {
+      min-height: 70px;
       padding: 10px;
+      display: grid;
+      place-content: center;
       text-align: center;
     }
 
     .statBox .lbl {
       display: block;
       margin-bottom: 5px;
-      font-size: .54rem;
+      font-size: .46rem;
     }
 
     .statBox .val {
-      font-size: .95rem;
+      font-size: .86rem;
     }
 
     .smallNote {
-      font-size: .62rem;
-      letter-spacing: .22em;
+      font-family: 'Orbitron';
+      font-size: .48rem;
+      line-height: 1.5;
+      letter-spacing: .18em;
       color: rgba(143, 180, 201, .72);
       text-align: center;
     }
 
-    .overExtraBtns {
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-      flex-wrap: wrap;
+    .confirmDialog {
+      width: min(430px, calc(100% - 28px));
+      margin: auto;
+      padding: 0;
+      color: var(--ink);
+      background: rgba(7, 16, 28, .98);
+      border: 1px solid rgba(255, 92, 71, .42);
+      clip-path: var(--cham);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, .58);
+    }
+
+    .confirmDialog::backdrop {
+      background: rgba(1, 4, 10, .78);
+      -webkit-backdrop-filter: blur(6px);
+      backdrop-filter: blur(6px);
+    }
+
+    .confirmBody {
+      padding: 26px;
+      display: grid;
+      gap: 14px;
+      text-align: center;
+    }
+
+    .confirmBody h3 {
+      font-family: 'Orbitron';
+      font-size: 1rem;
+      letter-spacing: .12em;
+      color: var(--ember);
+    }
+
+    .confirmBody p {
+      color: var(--dim);
+      font-size: .9rem;
+      line-height: 1.45;
+      letter-spacing: .035em;
+    }
+
+    .confirmActions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .confirmActions .cham {
+      width: 100%;
+      min-width: 0;
+    }
+
+    @media (max-width: 720px), (max-height: 560px) and (pointer: coarse) {
+      #ovProfile .profileBox,
+      #ovRecords .recordsBox {
+        width: 100%;
+        max-height: 100%;
+        padding: 22px 14px;
+        gap: 13px;
+      }
+
+      .profileLead {
+        font-size: .8rem;
+      }
+
+      .recordsList {
+        max-height: 42dvh;
+      }
+
+      .recordRow {
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 8px;
+        padding: 10px;
+      }
+
+      .recordScore {
+        grid-column: 2;
+        margin-top: 2px;
+      }
+
+      .recordSub {
+        font-size: .65rem;
+      }
+
+      .statsGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .profileBtns .cham,
+      .recordsBtns .cham {
+        min-height: 48px;
+      }
+
+      .recordsBtns {
+        grid-template-columns: 1fr;
+      }
+
+      .confirmBody {
+        padding: 22px 16px;
+      }
+    }
+
+    @media (max-height: 560px) and (min-width: 600px) and (pointer: coarse) {
+      #ovProfile .profileBox,
+      #ovRecords .recordsBox {
+        max-height: calc(100dvh - 16px);
+        padding: 16px 20px;
+        gap: 9px;
+      }
+
+      #ovRecords .recordsBox {
+        width: min(900px, 100%);
+      }
+
+      .recordsList {
+        max-height: 32dvh;
+      }
+
+      .statsGrid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .recordsBtns {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
     }
   `;
 
@@ -297,6 +460,7 @@
     const el = document.createElement('section');
     el.id = id;
     el.className = 'ov';
+    el.inert = true;
     el.innerHTML = innerHTML;
     document.body.appendChild(el);
     return el;
@@ -304,12 +468,15 @@
 
   const ovProfile = makeOverlay('ovProfile', `
     <div class="panel profileBox">
-      <h2 class="big hold" style="font-size:1.8rem">PILOT PROFILE</h2>
+      <div class="overlayStatus"><i aria-hidden="true"></i> LOCAL PILOT IDENTITY</div>
+      <h2 class="big hold" id="profileTitle">PILOT PROFILE</h2>
+      <p class="profileLead">Choose the callsign shown in your local records and mission summaries.</p>
 
       <div class="lbl">CALLSIGN</div>
       <input
         id="profileInput"
         class="profileInput"
+        aria-label="Callsign"
         maxlength="14"
         autocomplete="off"
         spellcheck="false"
@@ -322,14 +489,16 @@
 
       <div class="profileBtns">
         <button type="button" class="cham" id="profileSaveBtn">SAVE</button>
-        <button type="button" class="cham" id="profileBackBtn">BACK</button>
+        <button type="button" class="cham secondary" id="profileBackBtn">BACK</button>
       </div>
     </div>
   `);
 
   const ovRecords = makeOverlay('ovRecords', `
     <div class="panel recordsBox">
-      <h2 class="big hold" style="font-size:1.8rem">RECORDS</h2>
+      <div class="overlayStatus"><i aria-hidden="true"></i> LOCAL ARCHIVE ONLINE</div>
+      <h2 class="big hold" id="recordsTitle">RECORDS</h2>
+      <div class="smallNote">STORED ON THIS DEVICE · TOP 10 RUNS</div>
 
       <div class="lbl">LOCAL LEADERBOARD</div>
       <div id="recordsList" class="recordsList"></div>
@@ -338,12 +507,37 @@
       <div id="pilotStats" class="statsGrid"></div>
 
       <div class="recordsBtns">
-        <button type="button" class="cham" id="recordsBackBtn">BACK</button>
-        <button type="button" class="cham" id="recordsProfileBtn">EDIT PILOT</button>
-        <button type="button" class="cham" id="recordsClearBtn">CLEAR RECORDS</button>
+        <button type="button" class="cham secondary" id="recordsBackBtn">BACK</button>
+        <button type="button" class="cham secondary" id="recordsProfileBtn">EDIT PILOT</button>
+        <button type="button" class="cham danger" id="recordsClearBtn">CLEAR RECORDS</button>
       </div>
     </div>
   `);
+
+  ovProfile.setAttribute('role', 'dialog');
+  ovProfile.setAttribute('aria-modal', 'true');
+  ovProfile.setAttribute('aria-labelledby', 'profileTitle');
+
+  ovRecords.setAttribute('role', 'dialog');
+  ovRecords.setAttribute('aria-modal', 'true');
+  ovRecords.setAttribute('aria-labelledby', 'recordsTitle');
+
+  const clearRecordsDialog = document.createElement('dialog');
+  clearRecordsDialog.id = 'clearRecordsDialog';
+  clearRecordsDialog.className = 'confirmDialog';
+  clearRecordsDialog.setAttribute('aria-labelledby', 'clearRecordsTitle');
+  clearRecordsDialog.innerHTML = `
+    <div class="confirmBody">
+      <div class="overlayStatus dangerStatus"><i aria-hidden="true"></i> DESTRUCTIVE ACTION</div>
+      <h3 id="clearRecordsTitle">CLEAR LOCAL RECORDS?</h3>
+      <p>This permanently removes the local leaderboard on this device. Pilot stats and upgrades are not affected.</p>
+      <div class="confirmActions">
+        <button type="button" class="cham secondary" id="clearRecordsCancelBtn">CANCEL</button>
+        <button type="button" class="cham danger" id="clearRecordsConfirmBtn">CLEAR</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(clearRecordsDialog);
 
   /* =======================================================================
      Inject UI hooks into existing screens
@@ -354,7 +548,8 @@
 
   if (titleMeta) {
     const span = document.createElement('span');
-    span.innerHTML = '&nbsp;·&nbsp; PILOT <b id="tPilot">PILOT</b>';
+    span.className = 'metaItem';
+    span.innerHTML = '<small>PILOT</small><b id="tPilot">PILOT</b>';
     titleMeta.appendChild(span);
   }
 
@@ -364,12 +559,12 @@
   if (titleBtns) {
     const profileBtn = document.createElement('button');
     profileBtn.type = 'button';
-    profileBtn.className = 'cham';
+    profileBtn.className = 'cham secondary';
     profileBtn.textContent = 'PILOT';
 
     const recordsBtn = document.createElement('button');
     recordsBtn.type = 'button';
-    recordsBtn.className = 'cham';
+    recordsBtn.className = 'cham secondary';
     recordsBtn.textContent = 'RECORDS';
 
     titleBtns.appendChild(profileBtn);
@@ -385,12 +580,12 @@
   if (hangarBtns) {
     const profileBtn = document.createElement('button');
     profileBtn.type = 'button';
-    profileBtn.className = 'cham';
+    profileBtn.className = 'cham secondary';
     profileBtn.textContent = 'PILOT';
 
     const recordsBtn = document.createElement('button');
     recordsBtn.type = 'button';
-    recordsBtn.className = 'cham';
+    recordsBtn.className = 'cham secondary';
     recordsBtn.textContent = 'RECORDS';
 
     hangarBtns.insertBefore(recordsBtn, hangarBtns.firstChild);
@@ -411,19 +606,15 @@
   }
 
   /* Game over records button */
-  const overStart = document.querySelector('#ovOver .start');
+  const overActions = document.querySelector('#ovOver .gameOverActions');
 
-  if (overStart) {
-    const wrap = document.createElement('div');
-    wrap.className = 'overExtraBtns';
-
+  if (overActions) {
     const recordsBtn = document.createElement('button');
     recordsBtn.type = 'button';
-    recordsBtn.className = 'cham';
+    recordsBtn.className = 'cham secondary';
     recordsBtn.textContent = 'RECORDS';
 
-    wrap.appendChild(recordsBtn);
-    overStart.insertAdjacentElement('afterend', wrap);
+    overActions.appendChild(recordsBtn);
 
     recordsBtn.addEventListener('click', () => openRecords());
   }
@@ -452,15 +643,19 @@
   function hideGameHUD() {
     ['hud', 'combo', 'chips', 'surge', 'boss'].forEach(id => {
       const el = $(id);
-      if (el) el.classList.add('hidden');
+      if (el && window.setChromeVisible) window.setChromeVisible(el, false);
     });
   }
 
   function showGameHUDForOver() {
     ['hud', 'combo', 'chips', 'surge'].forEach(id => {
       const el = $(id);
-      if (el) el.classList.remove('hidden');
+      if (el && window.setChromeVisible) window.setChromeVisible(el, true);
     });
+
+    if (window.setGameControlsInteractive) {
+      window.setGameControlsInteractive(false);
+    }
   }
 
   function restoreReturn() {
@@ -614,15 +809,22 @@
     }).join('');
   }
 
-  function clearRecords() {
-    if (!confirm('Clear local leaderboard records?')) return;
+  function requestClearRecords() {
+    if (!clearRecordsDialog.open) {
+      clearRecordsDialog.showModal();
+      $('clearRecordsCancelBtn').focus();
+    }
+  }
 
+  function clearRecords() {
     BOARD = [];
     saveBoard();
 
     renderRecords();
+    clearRecordsDialog.close();
 
     if (window.toast) toast('LOCAL RECORDS CLEARED', 'red');
+    if (typeof AU !== 'undefined' && AU.uiConfirm) AU.uiConfirm();
   }
 
   /* =======================================================================
@@ -680,7 +882,13 @@
   $('profileBackBtn').addEventListener('click', closeProfile);
   $('recordsBackBtn').addEventListener('click', closeRecords);
   $('recordsProfileBtn').addEventListener('click', openProfile);
-  $('recordsClearBtn').addEventListener('click', clearRecords);
+  $('recordsClearBtn').addEventListener('click', requestClearRecords);
+  $('clearRecordsCancelBtn').addEventListener('click', () => clearRecordsDialog.close());
+  $('clearRecordsConfirmBtn').addEventListener('click', clearRecords);
+
+  clearRecordsDialog.addEventListener('click', e => {
+    if (e.target === clearRecordsDialog) clearRecordsDialog.close();
+  });
 
   ovProfile.addEventListener('click', e => {
     if (e.target === ovProfile) closeProfile();

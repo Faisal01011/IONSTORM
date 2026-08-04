@@ -34,46 +34,47 @@
 <body>
   <canvas id="view">IONSTORM requires a browser with HTML canvas support.</canvas>
 
-  <div id="fx-scan"></div>
-  <div id="fx-vig"></div>
-  <div id="fx-roll"></div>
-  <div id="fx-bloom"></div>
-  <div id="flash"></div>
+  <div id="fx-scan" aria-hidden="true"></div>
+  <div id="fx-vig" aria-hidden="true"></div>
+  <div id="fx-roll" aria-hidden="true"></div>
+  <div id="fx-bloom" aria-hidden="true"></div>
+  <div id="flash" aria-hidden="true"></div>
 
-  <header id="hud" class="hidden">
-    <div class="hudbox panel">
+  <header id="hud" class="hidden" aria-label="Mission status" inert>
+    <div class="hudbox panel hudscore">
       <div class="lbl">SCORE</div>
       <div class="val" id="hScore">0000000</div>
     </div>
 
-    <div class="hudbox panel hudmid">
+    <div class="hudbox panel hudmid hudwave">
       <div class="lbl">WAVE</div>
       <div class="val" id="hWave">01</div>
     </div>
 
     <div class="hudright">
-      <div class="hudbox panel">
+      <div class="hudbox panel hudbest">
         <div class="lbl">BEST</div>
         <div class="val" id="hHi">0000000</div>
       </div>
 
-      <div class="hudbox panel">
+      <div class="hudbox panel hudhull">
         <div class="lbl">HULL</div>
-        <div id="hLives"></div>
+        <div id="hLives" role="img" aria-label="Hull status"></div>
       </div>
 
-      <button type="button" class="panel hudbtn" id="sndBtn" title="Toggle sound" aria-label="Toggle sound">
+      <button type="button" class="panel hudbtn" id="sndBtn" title="Toggle sound" aria-label="Toggle sound" aria-pressed="false">
         <span class="dot" aria-hidden="true"></span>
-        SND
+        <span class="hudbtnLabel">SOUND</span>
       </button>
 
       <button type="button" class="panel hudbtn" id="pauseBtn" title="Pause" aria-label="Pause or resume">
-        ❚❚
+        <span class="hudbtnIcon" aria-hidden="true">❚❚</span>
+        <span class="hudbtnLabel">PAUSE</span>
       </button>
     </div>
   </header>
 
-  <div id="combo" class="panel hidden">
+  <div id="combo" class="panel hidden" inert>
     <div class="row">
       <span class="lbl">COMBO</span>
       <span id="hMult">×1</span>
@@ -81,15 +82,15 @@
     <div id="comboBar"><i></i></div>
   </div>
 
-  <div id="surge" class="panel hidden">
-    <div class="row">
+  <button type="button" id="surge" class="panel hidden" aria-label="Surge charging" disabled inert>
+    <span class="row">
       <span class="lbl">SURGE</span>
       <span id="surgePct">0%</span>
-    </div>
-    <div id="surgeBar"><i></i></div>
-  </div>
+    </span>
+    <span id="surgeBar"><i></i></span>
+  </button>
 
-  <div id="boss" class="panel hidden">
+  <div id="boss" class="panel hidden" inert>
     <div class="row">
       <span id="bossName">DREADNOUGHT</span>
       <span id="bossPhase">PHASE 1</span>
@@ -97,7 +98,7 @@
     <div id="bossBar"><i></i></div>
   </div>
 
-  <div id="chips" class="hidden">
+  <div id="chips" class="hidden" inert>
     <div class="chip tri panel hidden" id="cTri">
       TRIPLE<span class="bar"><i></i></span>
     </div>
@@ -120,167 +121,253 @@
   <div id="toasts" role="status" aria-live="polite"></div>
 
   <!-- TITLE SCREEN -->
-  <section id="ovTitle" class="ov on">
-    <div class="badge panel" id="badge">
-      <span class="pulse"></span>
-      <span id="badgeTxt">WEBGPU // COMPUTE-DRIVEN</span>
-    </div>
+  <section id="ovTitle" class="ov on" aria-labelledby="titleLogo">
+    <div class="titleShell">
+      <header class="titleHero">
+        <div class="badge panel" id="badge">
+          <span class="pulse" aria-hidden="true"></span>
+          <span id="badgeTxt">WEBGPU // COMPUTE-DRIVEN</span>
+        </div>
 
-    <h1 class="logo">ION<b>STORM</b></h1>
-    <p class="tag">DEFEND THE VEIL · RIDE THE SURGE</p>
+        <p class="eyebrow">TACTICAL ARCADE NETWORK // SECTOR 07</p>
+        <h1 class="logo" id="titleLogo">ION<b>STORM</b></h1>
+        <p class="tag">DEFEND THE VEIL · RIDE THE SURGE</p>
+        <p class="titleBrief">
+          Cut through hostile fleets, break the Dreadnought line, and carry every upgrade into the next run.
+        </p>
+      </header>
 
-    <div class="ctrls panel desktopCtrls">
-      <span class="k">MOVE</span>
-      <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd> / POINTER</span>
+      <div class="titleDeck">
+        <div class="controlPanel panel">
+          <div class="panelHeading">
+            <span>FLIGHT CONTROLS</span>
+            <span class="statusTag"><i aria-hidden="true"></i> LINK READY</span>
+          </div>
 
-      <span class="k">CANNONS</span>
-      <span>AUTO-FIRE</span>
+          <div class="ctrls desktopCtrls">
+            <div class="controlRow">
+              <span class="controlName">MOVE</span>
+              <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> <em>OR</em> POINTER</span>
+            </div>
+            <div class="controlRow">
+              <span class="controlName">CANNONS</span>
+              <span>AUTO-FIRE</span>
+            </div>
+            <div class="controlRow">
+              <span class="controlName">SURGE</span>
+              <span><kbd>SPACE</kbd> WHEN CHARGED</span>
+            </div>
+            <div class="controlRow">
+              <span class="controlName">SYSTEM</span>
+              <span><kbd>H</kbd> HANGAR <kbd>P</kbd> PAUSE <kbd>M</kbd> SOUND</span>
+            </div>
+          </div>
 
-      <span class="k">SURGE</span>
-      <span><kbd>SPACE</kbd> (WHEN FULL)</span>
+          <div class="mobileCtrls">
+            <div class="mobileControl">
+              <span class="mobileControlIcon" aria-hidden="true">◎</span>
+              <span><b>DRAG TO STEER</b><small>Cannons fire automatically</small></span>
+            </div>
+            <div class="mobileControl">
+              <span class="mobileControlIcon" aria-hidden="true">⚡</span>
+              <span><b>TAP SURGE OR DOUBLE-TAP</b><small>Activate when the meter is full</small></span>
+            </div>
+          </div>
+        </div>
 
-      <span class="k">HANGAR</span>
-      <span><kbd>H</kbd></span>
+        <div class="launchPanel panel">
+          <div class="panelHeading">
+            <span>MISSION CONTROL</span>
+            <span class="missionCode">VEIL-01</span>
+          </div>
 
-      <span class="k">PAUSE · SOUND</span>
-      <span><kbd>P</kbd> · <kbd>M</kbd></span>
+          <div class="launchCopy">
+            <strong>YOUR SHIP IS CLEARED</strong>
+            <span>Launch now or configure your fleet in the Hangar.</span>
+          </div>
 
-      <span class="k">RESTART</span>
-      <span><kbd>R</kbd></span>
-    </div>
+          <div class="titleBtns">
+            <button type="button" class="start primaryAction" id="startPrompt">
+              <span class="actionLabel">LAUNCH MISSION</span>
+              <span class="actionHint desktopOnly">ENTER / SPACE</span>
+              <span class="actionHint mobileOnly">TAP TO DEPLOY</span>
+            </button>
 
-    <div class="mobileCtrls panel">
-      <span class="mobileControlIcon" aria-hidden="true">◎</span>
-      <span><b>DRAG TO MOVE</b><small>Cannons fire automatically</small></span>
-      <span class="mobileControlIcon" aria-hidden="true">⚡</span>
-      <span><b>DOUBLE-TAP FOR SURGE</b><small>Available when fully charged</small></span>
-    </div>
+            <button type="button" class="cham secondary" id="hangarBtn">
+              HANGAR
+            </button>
+          </div>
 
-    <div class="titleBtns">
-      <button type="button" class="start blink" id="startPrompt">
-        <span class="desktopOnly">▸ PRESS ANY KEY TO LAUNCH · H FOR HANGAR</span>
-        <span class="mobileOnly">▸ TAP TO LAUNCH</span>
-      </button>
-
-      <button type="button" class="cham" id="hangarBtn">
-        HANGAR
-      </button>
-    </div>
-
-    <div class="meta">
-      <span id="gpuinfo">INITIALIZING RENDERER…</span>
-      &nbsp;·&nbsp;
-      HI-SCORE <b id="tHi">0000000</b>
-      &nbsp;·&nbsp;
-      SCRAP <b id="tScrap">0</b>
-      &nbsp;·&nbsp;
-      SHIP <b id="tShip">VANGUARD</b>
+          <div class="meta" role="group" aria-label="Pilot and mission status">
+            <span class="metaItem metaRenderer">
+              <small>RENDERER</small>
+              <b id="gpuinfo">INITIALIZING…</b>
+            </span>
+            <span class="metaItem">
+              <small>HI-SCORE</small>
+              <b id="tHi">0000000</b>
+            </span>
+            <span class="metaItem">
+              <small>SCRAP</small>
+              <b id="tScrap">0</b>
+            </span>
+            <span class="metaItem">
+              <small>SHIP</small>
+              <b id="tShip">VANGUARD</b>
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
   <!-- HANGAR / META PROGRESSION -->
-  <section id="ovHangar" class="ov">
+  <section id="ovHangar" class="ov" role="dialog" aria-modal="true" aria-labelledby="hangarTitle" inert>
     <div class="panel wrap">
       <div class="hangarTop panel">
-        <span class="lbl">HANGAR // META PROGRESSION</span>
-        <span class="lbl">SCRAP <b id="hScrap">0</b></span>
+        <div>
+          <span class="eyebrow">FLEET OPERATIONS // META PROGRESSION</span>
+          <h2 id="hangarTitle">HANGAR</h2>
+          <p>Choose a frame, install permanent upgrades, and tune performance.</p>
+        </div>
+        <div class="scrapCounter">
+          <span>AVAILABLE SCRAP</span>
+          <b id="hScrap">0</b>
+        </div>
       </div>
 
-      <div class="lbl">SHIP SELECT</div>
-      <div id="shipGrid"></div>
+      <div class="hangarBody">
+        <section class="hangarSection" aria-labelledby="shipSelectHeading">
+          <div class="sectionHeading">
+            <span class="sectionIndex">01</span>
+            <div>
+              <h3 id="shipSelectHeading">SHIP SELECT</h3>
+              <p>Each frame changes speed, hull strength, and firing cadence.</p>
+            </div>
+          </div>
+          <div id="shipGrid"></div>
+        </section>
 
-      <div class="lbl">UPGRADES</div>
-      <div id="upGrid"></div>
+        <section class="hangarSection" aria-labelledby="upgradeHeading">
+          <div class="sectionHeading">
+            <span class="sectionIndex">02</span>
+            <div>
+              <h3 id="upgradeHeading">UPGRADES</h3>
+              <p>Permanent improvements apply to every future deployment.</p>
+            </div>
+          </div>
+          <div id="upGrid"></div>
+        </section>
 
-      <div class="lbl">ACCESSIBILITY &amp; PERFORMANCE</div>
-      <div id="settingsGrid">
-        <button type="button" class="setting panel" id="settingFlash" aria-pressed="false">
-          <span class="settingName">REDUCED FLASH</span>
-          <span class="settingDesc">Suppress impact flashes and reduce bloom</span>
-          <span class="settingState" id="settingFlashState">OFF</span>
-        </button>
+        <section class="hangarSection" aria-labelledby="settingsHeading">
+          <div class="sectionHeading">
+            <span class="sectionIndex">03</span>
+            <div>
+              <h3 id="settingsHeading">ACCESSIBILITY &amp; PERFORMANCE</h3>
+              <p>Adjust visual intensity and rendering load for your device.</p>
+            </div>
+          </div>
+          <div id="settingsGrid">
+            <button type="button" class="setting panel" id="settingFlash" aria-pressed="false">
+              <span class="settingName">REDUCED FLASH</span>
+              <span class="settingDesc">Suppress impact flashes and reduce bloom</span>
+              <span class="settingState" id="settingFlashState">OFF</span>
+            </button>
 
-        <button type="button" class="setting panel" id="settingShake" aria-pressed="false">
-          <span class="settingName">REDUCED SHAKE</span>
-          <span class="settingDesc">Limit camera shake and chromatic impact</span>
-          <span class="settingState" id="settingShakeState">OFF</span>
-        </button>
+            <button type="button" class="setting panel" id="settingShake" aria-pressed="false">
+              <span class="settingName">REDUCED SHAKE</span>
+              <span class="settingDesc">Limit camera shake and chromatic impact</span>
+              <span class="settingState" id="settingShakeState">OFF</span>
+            </button>
 
-        <button type="button" class="setting panel" id="settingQuality" aria-pressed="false">
-          <span class="settingName">LOW QUALITY</span>
-          <span class="settingDesc">Lower render resolution for slower devices</span>
-          <span class="settingState" id="settingQualityState">OFF</span>
-        </button>
+            <button type="button" class="setting panel" id="settingQuality" aria-pressed="false">
+              <span class="settingName">LOW QUALITY</span>
+              <span class="settingDesc">Lower render resolution for slower devices</span>
+              <span class="settingState" id="settingQualityState">OFF</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="hangarSection" aria-labelledby="achievementHeading">
+          <div class="sectionHeading">
+            <span class="sectionIndex">04</span>
+            <div>
+              <h3 id="achievementHeading">ACHIEVEMENTS</h3>
+              <p>Milestones recorded locally for this pilot profile.</p>
+            </div>
+          </div>
+          <div id="achGrid"></div>
+        </section>
       </div>
-
-      <div class="lbl">ACHIEVEMENTS</div>
-      <div id="achGrid"></div>
 
       <div class="hangarBtns">
-        <button type="button" class="cham" id="hangarBackBtn">BACK</button>
+        <button type="button" class="cham secondary" id="hangarBackBtn">BACK</button>
         <button type="button" class="cham" id="hangarLaunchBtn">LAUNCH</button>
       </div>
     </div>
   </section>
 
   <!-- PAUSE -->
-  <section id="ovPause" class="ov">
-    <h2 class="big hold">STANDBY</h2>
-    <p class="hint desktopOnly">
-      <kbd>P</kbd> RESUME
-      &nbsp;·&nbsp;
-      <kbd>M</kbd> SOUND
-      &nbsp;·&nbsp;
-      <kbd>R</kbd> RESTART
-    </p>
-    <div class="overlayBtns mobileOnly">
-      <button type="button" class="cham" id="resumeBtn">RESUME</button>
-      <button type="button" class="cham secondary" id="pauseRestartBtn">RESTART</button>
+  <section id="ovPause" class="ov" role="dialog" aria-modal="true" aria-labelledby="pauseTitle" inert>
+    <div class="overlayCard panel">
+      <div class="overlayStatus"><i aria-hidden="true"></i> MISSION SUSPENDED</div>
+      <h2 class="big hold" id="pauseTitle">STANDBY</h2>
+      <p class="overlayCopy">Your run is paused. Resume when you are ready to re-enter the Veil.</p>
+      <div class="overlayActions">
+        <button type="button" class="cham" id="resumeBtn">RESUME</button>
+        <button type="button" class="cham secondary" id="pauseSoundBtn">SOUND ON</button>
+        <button type="button" class="cham danger" id="pauseRestartBtn">RESTART</button>
+      </div>
+      <p class="hint desktopOnly">
+        <kbd>P</kbd> RESUME <span>·</span> <kbd>M</kbd> SOUND <span>·</span> <kbd>R</kbd> RESTART
+      </p>
     </div>
   </section>
 
   <!-- GAME OVER -->
-  <section id="ovOver" class="ov">
-    <h2 class="big lose">SIGNAL LOST</h2>
+  <section id="ovOver" class="ov" role="dialog" aria-modal="true" aria-labelledby="gameOverTitle" inert>
+    <div class="overlayCard resultCard panel">
+      <div class="overlayStatus dangerStatus"><i aria-hidden="true"></i> PILOT LINK TERMINATED</div>
+      <h2 class="big lose" id="gameOverTitle">SIGNAL LOST</h2>
 
-    <div id="newRec" class="hidden">★ NEW RECORD ★</div>
+      <div id="newRec" class="hidden">★ NEW RECORD ★</div>
 
-    <div class="stats panel">
-      <span class="lbl">FINAL SCORE</span>
-      <span class="val" id="sScore">0</span>
+      <div class="stats">
+        <span class="lbl">FINAL SCORE</span>
+        <span class="val" id="sScore">0</span>
 
-      <span class="lbl">BEST</span>
-      <span class="val" id="sBest">0</span>
+        <span class="lbl">BEST</span>
+        <span class="val" id="sBest">0</span>
 
-      <span class="lbl">WAVE REACHED</span>
-      <span class="val" id="sWave">1</span>
+        <span class="lbl">WAVE REACHED</span>
+        <span class="val" id="sWave">1</span>
 
-      <span class="lbl">KILLS</span>
-      <span class="val" id="sKills">0</span>
+        <span class="lbl">KILLS</span>
+        <span class="val" id="sKills">0</span>
 
-      <span class="lbl">MAX COMBO</span>
-      <span class="val" id="sCombo">0</span>
+        <span class="lbl">MAX COMBO</span>
+        <span class="val" id="sCombo">0</span>
 
-      <span class="lbl">SCRAP EARNED</span>
-      <span class="val" id="sScrap">0</span>
+        <span class="lbl">SCRAP EARNED</span>
+        <span class="val" id="sScrap">0</span>
 
-      <span class="lbl">TOTAL SCRAP</span>
-      <span class="val" id="sTotalScrap">0</span>
-    </div>
+        <span class="lbl">TOTAL SCRAP</span>
+        <span class="val" id="sTotalScrap">0</span>
+      </div>
 
-    <div class="start blink desktopOnly">
-      ▸ ENTER RELAUNCH · H HANGAR
-    </div>
-    <div class="overlayBtns mobileOnly">
-      <button type="button" class="cham" id="relaunchBtn">RELAUNCH</button>
-      <button type="button" class="cham secondary" id="overHangarBtn">HANGAR</button>
+      <div class="overlayActions gameOverActions">
+        <button type="button" class="cham" id="relaunchBtn">RELAUNCH</button>
+        <button type="button" class="cham secondary" id="overHangarBtn">HANGAR</button>
+      </div>
+      <p class="hint desktopOnly"><kbd>ENTER</kbd> RELAUNCH <span>·</span> <kbd>H</kbd> HANGAR</p>
     </div>
   </section>
 
   <!-- FATAL ERROR -->
-  <section id="ovFatal" class="ov">
+  <section id="ovFatal" class="ov" role="alertdialog" aria-modal="true" aria-labelledby="fatalTitle" inert>
     <div class="panel fatalBox">
-      <h2 class="big lose fatalTitle">SYSTEM FAULT</h2>
+      <div class="overlayStatus dangerStatus"><i aria-hidden="true"></i> RENDERER OFFLINE</div>
+      <h2 class="big lose fatalTitle" id="fatalTitle">SYSTEM FAULT</h2>
       <p class="why" id="fatalWhy">—</p>
       <p>
         If this mentions WebGPU/WebGL2, enable hardware acceleration,
