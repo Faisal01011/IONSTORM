@@ -129,7 +129,7 @@
     <h1 class="logo">ION<b>STORM</b></h1>
     <p class="tag">DEFEND THE VEIL · RIDE THE SURGE</p>
 
-    <div class="ctrls panel">
+    <div class="ctrls panel desktopCtrls">
       <span class="k">MOVE</span>
       <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd> / POINTER</span>
 
@@ -149,9 +149,17 @@
       <span><kbd>R</kbd></span>
     </div>
 
+    <div class="mobileCtrls panel">
+      <span class="mobileControlIcon" aria-hidden="true">◎</span>
+      <span><b>DRAG TO MOVE</b><small>Cannons fire automatically</small></span>
+      <span class="mobileControlIcon" aria-hidden="true">⚡</span>
+      <span><b>DOUBLE-TAP FOR SURGE</b><small>Available when fully charged</small></span>
+    </div>
+
     <div class="titleBtns">
       <button type="button" class="start blink" id="startPrompt">
-        ▸ PRESS ANY KEY TO LAUNCH · H FOR HANGAR
+        <span class="desktopOnly">▸ PRESS ANY KEY TO LAUNCH · H FOR HANGAR</span>
+        <span class="mobileOnly">▸ TAP TO LAUNCH</span>
       </button>
 
       <button type="button" class="cham" id="hangarBtn">
@@ -218,13 +226,17 @@
   <!-- PAUSE -->
   <section id="ovPause" class="ov">
     <h2 class="big hold">STANDBY</h2>
-    <p class="hint">
+    <p class="hint desktopOnly">
       <kbd>P</kbd> RESUME
       &nbsp;·&nbsp;
       <kbd>M</kbd> SOUND
       &nbsp;·&nbsp;
       <kbd>R</kbd> RESTART
     </p>
+    <div class="overlayBtns mobileOnly">
+      <button type="button" class="cham" id="resumeBtn">RESUME</button>
+      <button type="button" class="cham secondary" id="pauseRestartBtn">RESTART</button>
+    </div>
   </section>
 
   <!-- GAME OVER -->
@@ -256,8 +268,12 @@
       <span class="val" id="sTotalScrap">0</span>
     </div>
 
-    <div class="start blink">
+    <div class="start blink desktopOnly">
       ▸ ENTER RELAUNCH · H HANGAR
+    </div>
+    <div class="overlayBtns mobileOnly">
+      <button type="button" class="cham" id="relaunchBtn">RELAUNCH</button>
+      <button type="button" class="cham secondary" id="overHangarBtn">HANGAR</button>
     </div>
   </section>
 
