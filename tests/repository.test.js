@@ -7,6 +7,7 @@ const test = require('node:test');
 
 const ROOT = path.resolve(__dirname, '..');
 const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+const GAME_SOURCE = fs.readFileSync(path.join(ROOT, 'game.js'), 'utf8');
 
 test('all local HTML asset references exist', () => {
   const references = [
@@ -33,6 +34,15 @@ test('every button declares its non-submit behavior', () => {
   for (const button of buttons) {
     assert.match(button, /\btype="button"/, `button is missing type="button": ${button}`);
   }
+});
+
+test('mobile overlays provide touch actions without requiring a keyboard', () => {
+  for (const id of ['startPrompt', 'resumeBtn', 'pauseRestartBtn', 'relaunchBtn', 'overHangarBtn']) {
+    assert.match(HTML, new RegExp(`id="${id}"`), `missing mobile action: ${id}`);
+  }
+
+  assert.match(GAME_SOURCE, /isTouchDoubleTap/);
+  assert.match(GAME_SOURCE, /G\.state === 'playing' && isTouchDoubleTap/);
 });
 
 test('the social preview metadata describes the generated image', () => {
