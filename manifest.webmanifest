@@ -1,0 +1,17 @@
+{
+  "name": "IONSTORM — WebGPU Arcade",
+  "short_name": "IONSTORM",
+  "description": "Defend the Veil. Ride the Surge.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#04070f",
+  "theme_color": "#04070f",
+  "icons": [{
+    "src": "ionstorm-icon.svg",
+    "sizes": "any",
+    "type": "image/svg+xml",
+    "purpose": "any maskable"
+  }]
+}

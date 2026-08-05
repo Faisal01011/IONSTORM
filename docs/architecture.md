@@ -1,6 +1,6 @@
 # IONSTORM architecture
 
-IONSTORM is a dependency-free static web game. The repository deliberately has no bundler or framework: the browser loads the root HTML entry point, the source modules, and the generated social preview asset directly. This keeps local development, deployment, and offline experimentation straightforward.
+IONSTORM is a dependency-free static web game. The repository deliberately has no bundler or framework: the browser loads the root HTML entry point, the source modules, and the generated social preview asset directly. A small service worker adds installability and offline caching without changing the runtime architecture.
 
 ## Runtime layout
 
@@ -8,7 +8,10 @@ IONSTORM is a dependency-free static web game. The repository deliberately has n
 index.html
 ├── src/styles.css       visual system, overlays, HUD, and responsive rules
 ├── src/game.js          renderer, simulation, input, audio, and core progression
-└── src/profile.js       pilot profile, local records, and statistics add-on
+├── src/profile.js       pilot profile, local records, and statistics add-on
+├── manifest.webmanifest install metadata and standalone display settings
+├── sw.js                cache-first static shell and offline navigation fallback
+└── ionstorm-icon.svg    install and home-screen icon
 ```
 
 `profile.js` is loaded after `game.js` because it extends the core with profile and records screens and wraps selected game lifecycle hooks. The game remains playable when the optional profile layer is unavailable.
@@ -20,12 +23,21 @@ index.html
 3. A procedural sprite atlas is created in memory.
 4. WebGPU is attempted first. If it is unavailable or initialization fails, the game initializes its WebGL2 fallback.
 5. The title screen is shown and the shared animation loop begins.
+6. The service worker is registered progressively; when the browser supports
+   installation, the title screen exposes an install action.
 
 The WebGPU path uses embedded WGSL for background, sprite, particle, and compute passes. The fallback uses embedded GLSL ES 3.00 shaders and a CPU-managed particle pool. There are no downloaded models, textures, or game libraries.
 
 ## State and persistence
 
 Core state lives in the `G` object in `src/game.js`. It covers the active run, player, enemies, projectiles, pickups, waves, score, combo, boss state, renderer timing, run metrics, daily challenge state, and temporary run progression.
+
+The local meta profile also stores the selected cosmetic in four categories:
+ship color, engine trail, engine effect, and victory effect. Each non-default
+item references an existing achievement; the Hangar only enables an item after
+that achievement is recorded. Equipped values are copied into the run state at
+deployment so they affect ship tint, exhaust particles, thrust glow, and
+Dreadnought defeat bursts without changing combat balance.
 
 Enemy kills award run XP. When the current threshold is reached, the simulation
 enters the `upgrade` state and freezes the world while `ovUpgrade` presents
@@ -81,7 +93,19 @@ Persistent values are intentionally local to the browser:
 | `ionstorm.stats` | aggregate pilot statistics |
 | `ionstorm.daily` | local best daily scores keyed by UTC date |
 
+Cosmetic selections are stored inside `ionstorm.meta.cosmetics`; no remote
+account or asset download is required.
+
 The local records list is not a server leaderboard and is not tamper-proof. No account or backend is required to play.
+
+## Offline shell
+
+`sw.js` precaches the root HTML, JavaScript, CSS, manifest, icon, and social
+preview. Same-origin GET requests use a cache-first strategy, while failed
+navigation requests fall back to the cached `index.html`. Progression remains
+in browser `localStorage`, so installed/offline play preserves the same local
+pilot profile on that device. Google Fonts are an optional remote enhancement;
+the system font stack keeps the game usable when they are unavailable.
 
 ## Input model
 

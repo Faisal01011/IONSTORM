@@ -8,7 +8,7 @@
 
 IONSTORM is a neon browser arcade shooter built for short, replayable runs. Pilot through escalating enemy waves, break Dreadnought boss encounters, collect scrap, and bring permanent Hangar upgrades into your next deployment.
 
-It uses WebGPU when available and falls back to WebGL2 automatically, so the same game can run across modern desktop and mobile browsers without an account, backend, or installation step.
+It uses WebGPU when available and falls back to WebGL2 automatically, so the same game can run across modern desktop and mobile browsers without an account or backend. It can also be installed as a standalone PWA and cached for offline play.
 
 [![IONSTORM preview](og-image.png)](https://ionstorm.vercel.app)
 
@@ -25,9 +25,11 @@ It uses WebGPU when available and falls back to WebGL2 automatically, so the sam
 - SURGE overdrive, combo multipliers, achievements, and score chasing
 - Three ships with distinct speed, hull, shield, and firing profiles
 - Persistent scrap, upgrades, pilot profile, local records, and statistics
+- Achievement-unlocked cosmetics: ship colors, engine trails, engine effects, and victory effects
 - Procedural sound effects and music with accessible mute controls
 - Reduced flash, reduced shake, contrast, low-quality, and input-response settings
 - A responsive interface for desktop, portrait mobile, and landscape mobile play
+- Installable PWA shell with offline caching and local progression
 
 ## Controls
 
@@ -73,6 +75,11 @@ pattern opens a short **CORE EXPOSED** window for high-damage counterfire.
 Visual and performance preferences are saved locally in the browser.
 The Hangar's **INPUT RESPONSE** slider tunes touch, pointer, and keyboard steering from 75% (precise) to 175% (fast), with 125% as the default.
 
+The Hangar's **COSMETICS BAY** turns achievement progress into visible rewards.
+Equip unlocked ship colors, engine trails, engine signatures, and Dreadnought
+victory effects; selections are stored in the local pilot profile and apply to
+new deployments.
+
 ## Run locally
 
 IONSTORM is a static site. Node.js is only used for the repository checks; no runtime package installation is required by the game.
@@ -86,6 +93,10 @@ npm run serve
 ```
 
 Open [http://localhost:4173](http://localhost:4173). A local HTTP server is recommended because it reproduces deployed asset and browser behavior more reliably than opening `index.html` directly.
+
+On supported browsers, use **INSTALL IONSTORM** on the title screen to add the
+game to your device. The service worker caches the game shell after the first
+successful load, so subsequent launches work without a network connection.
 
 ## Browser support
 
@@ -105,6 +116,9 @@ IONSTORM/
 │   └── styles.css       visual system and responsive interface
 ├── tests/               Node regression tests and repository contracts
 ├── index.html           static entry point and game shell
+├── manifest.webmanifest install metadata and standalone display settings
+├── sw.js                 cache-first offline shell service worker
+├── ionstorm-icon.svg     install and home-screen icon
 ├── og-image.png         generated social preview
 ├── og-image.svg         editable social preview source
 ├── CNAME                custom deployment domain configuration
@@ -130,8 +144,8 @@ For contribution expectations, browser testing guidance, and the project boundar
 
 The current records board is intentionally local to the browser; it is not a global leaderboard and is not tamper-proof. There is no account system, matchmaking, or server-side progression.
 
-The next gameplay milestone is installable PWA support with offline caching;
-gamepad input will follow as the next control-system pass.
+The next gameplay milestone is gamepad input, followed by richer accessibility
+and input customisation.
 
 ## License
 

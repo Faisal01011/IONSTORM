@@ -1362,6 +1362,21 @@ button.start:focus-visible {
   border-color: rgba(255, 180, 84, .52) !important;
 }
 
+.installAction {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--cyan) !important;
+  background: rgba(12, 47, 58, .72) !important;
+  border-color: rgba(95, 242, 255, .46) !important;
+}
+
+.installAction .actionLabel::before {
+  content: '↓';
+}
+
 .dailyBrief {
   display: grid;
   gap: 6px;
@@ -2129,6 +2144,105 @@ button.buy:focus-visible,
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+#cosmeticsGrid {
+  display: grid;
+  gap: 14px;
+}
+
+.cosmeticGroup {
+  display: grid;
+  gap: 7px;
+}
+
+.cosmeticGroupTitle {
+  color: var(--amber);
+  font-family: 'Orbitron';
+  font-size: .56rem;
+  letter-spacing: .14em;
+}
+
+.cosmeticOptions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.cosmeticCard {
+  appearance: none;
+  min-width: 0;
+  min-height: 78px;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  color: inherit;
+  text-align: left;
+  background: rgba(4, 11, 20, .65);
+  cursor: pointer;
+  transition: border-color .15s ease, background-color .15s ease, transform .15s ease;
+}
+
+.cosmeticCard:hover:not(:disabled),
+.cosmeticCard:focus-visible,
+.cosmeticCard.sel {
+  border-color: rgba(95, 242, 255, .72);
+  background: rgba(95, 242, 255, .1);
+}
+
+.cosmeticCard:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+.cosmeticCard.locked {
+  cursor: not-allowed;
+  opacity: .48;
+}
+
+.cosmeticSwatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--cosmetic);
+  box-shadow: 0 0 18px var(--cosmetic);
+  border: 2px solid rgba(255, 255, 255, .7);
+}
+
+.cosmeticInfo {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.cosmeticInfo b {
+  overflow: hidden;
+  color: var(--ink);
+  font-family: 'Orbitron';
+  font-size: .54rem;
+  letter-spacing: .08em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cosmeticInfo small {
+  color: var(--dim);
+  font-size: .66rem;
+  line-height: 1.25;
+}
+
+.cosmeticState {
+  grid-column: 2;
+  color: var(--muted);
+  font-family: 'Orbitron';
+  font-size: .46rem;
+  letter-spacing: .1em;
+}
+
+.cosmeticCard.sel .cosmeticState {
+  color: var(--cyan);
+}
+
 #settingsGrid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -2443,6 +2557,10 @@ button.buy.max {
   }
 
   #achGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cosmeticOptions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -3185,7 +3303,8 @@ button.buy.max {
   #shipGrid,
   #upGrid,
   #settingsGrid,
-  #achGrid {
+  #achGrid,
+  #cosmeticsGrid {
     grid-template-columns: 1fr;
   }
 
@@ -3473,6 +3592,10 @@ button.buy.max {
 
   #upGrid,
   #achGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cosmeticOptions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
