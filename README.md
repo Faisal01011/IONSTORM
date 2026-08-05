@@ -62,6 +62,13 @@ rage drives, or Splitter cores. Every few waves also introduces a tactical event
 such as Elite Hunt, Asteroid Storm, or Salvage Run; the event panel explains the
 current modifier while the wave is active.
 
+Combat pickups now cover seven temporary systems: TRIPLE spread shot, RAPID
+fire, SHIELD cells, SEEKER missiles, PIERCING lances that pass through multiple
+contacts once per target, a MAGNET that reaches farther and pulls salvage faster, and
+TIME-SLOW that reduces hostile-world speed for seven seconds. Active timers are
+shown in the mobile and desktop HUD; pickup effects last only for the current
+deployment.
+
 Every fifth wave culminates in a Dreadnought encounter. Its four phases—Hunter,
 Siege, Breach, and Meltdown—change movement, reinforcements, and attack patterns.
 Later encounters also advance the Dreadnought Mk: hull and damage resistance rise,

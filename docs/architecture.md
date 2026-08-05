@@ -32,6 +32,16 @@ The WebGPU path uses embedded WGSL for background, sprite, particle, and compute
 
 Core state lives in the `G` object in `src/game.js`. It covers the active run, player, enemies, projectiles, pickups, waves, score, combo, boss state, renderer timing, run metrics, daily challenge state, and temporary run progression.
 
+Powerups are selected from one shared seven-item drop table for normal kills and
+Dreadnought rewards. TRIPLE, RAPID, SHIELD, and SEEKER retain their existing
+combat roles. PIERCING marks each fired bullet with a per-projectile target set
+so one shot can pass through multiple contacts without repeatedly damaging the
+same contact. MAGNET temporarily increases pickup attraction range and pull
+speed on top of the persistent Hangar magnet upgrade. TIME-SLOW uses its own
+run-only timer and time scale, separate from the short impact/pickup feedback
+slow. All temporary effects reset in `resetRun()` and their remaining time is
+shown through the pickup chips in the HUD.
+
 The local meta profile also stores the selected cosmetic in four categories:
 ship color, engine trail, engine effect, and victory effect. Each non-default
 item references an existing achievement; the Hangar only enables an item after

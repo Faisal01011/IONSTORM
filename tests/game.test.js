@@ -155,6 +155,9 @@ function makeHarness() {
       BOSS_PHASES,
       BOSS_VARIANTS,
       COSMETICS,
+      POWERUP_TYPES,
+      POWERUP_DURATION,
+      TIME_SLOW_DURATION,
       equippedCosmetics,
       equipCosmetic,
       playVictoryEffect,
@@ -578,6 +581,118 @@ test('projectiles wait for an enemy to enter the playfield before colliding', ()
 
   assert.equal(api.G.enemies.length, 0);
   assert.equal(api.G.bullets.length, 0);
+});
+
+test('temporary combat pickups include piercing, magnet, and time-slow effects', () => {
+  const { api } = makeHarness();
+
+  assert.deepEqual(Array.from(api.POWERUP_TYPES), [
+    'triple',
+    'rapid',
+    'shield',
+    'seeker',
+    'piercing',
+    'magnet',
+    'slow'
+  ]);
+
+  const collect = type => {
+    api.resize();
+    api.resetRun();
+    const p = api.G.player;
+
+    api.G.powerups.push({
+      x: p.x,
+      y: p.y,
+      type,
+      t: 0,
+      spark: 0
+    });
+
+    api.updateWorld(0);
+  };
+
+  collect('piercing');
+  assert.equal(api.G.player.piercing, api.POWERUP_DURATION);
+
+  collect('magnet');
+  assert.equal(api.G.player.magnet, api.POWERUP_DURATION);
+
+  collect('slow');
+  assert.equal(api.G.timeSlowT, api.TIME_SLOW_DURATION);
+
+  api.G.slowT = 0;
+  api.update(0.016);
+  assert.equal(api.G.timeScale, 0.45);
+});
+
+test('magnet pickup temporarily pulls salvage from beyond the normal radius', () => {
+  const { api } = makeHarness();
+
+  api.resize();
+  api.resetRun();
+  api.G.player.x = 400;
+  api.G.player.y = 400;
+  api.G.player.magnet = api.POWERUP_DURATION;
+
+  const pickup = {
+    x: 600,
+    y: 400,
+    type: 'shield',
+    t: 0,
+    spark: 0
+  };
+
+  api.G.powerups.push(pickup);
+  api.updateWorld(0.1);
+
+  assert.ok(pickup.x < 600);
+  assert.equal(api.G.powerups.length, 1);
+});
+
+test('piercing bullets survive one target and cannot damage the same target twice', () => {
+  const { api } = makeHarness();
+
+  api.resize();
+  api.resetRun();
+  api.G.enemies.length = 0;
+  api.G.bullets.length = 0;
+  api.G.wave = 1;
+
+  const enemy = offset => ({
+    type: 'drone',
+    x: 320 + offset,
+    y: 160,
+    r: 24,
+    hp: 1,
+    baseX: 320 + offset,
+    amp: 0,
+    freq: 1,
+    vy: 0,
+    t: 0,
+    flash: 0,
+    fireT: 9999,
+    val: 100
+  });
+
+  api.G.enemies.push(enemy(0), enemy(0));
+  api.G.bullets.push({
+    x: 320,
+    y: 160,
+    vx: 0,
+    vy: 0,
+    r: 6,
+    piercing: true,
+    hitTargets: new Set()
+  });
+
+  api.updateWorld(0);
+  assert.equal(api.G.enemies.length, 1);
+  assert.equal(api.G.bullets.length, 1);
+
+  api.updateWorld(0);
+  assert.equal(api.G.enemies.length, 0);
+  assert.equal(api.G.bullets.length, 1);
 });
 
 test('daily challenges are stable by UTC date and seed gameplay randomness', () => {

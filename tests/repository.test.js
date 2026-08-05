@@ -116,6 +116,26 @@ test('in-run progression exposes an accessible upgrade choice flow', () => {
   assert.match(GAME_SOURCE, /choices\.length < Math\.min\(3, ids\.length\)/);
 });
 
+test('temporary weapon pickups expose the complete combat power-up kit', () => {
+  for (const id of ['cPierce', 'cMag', 'cSlow']) {
+    assert.match(HTML, new RegExp(`id="${id}"`), `missing pickup HUD hook: ${id}`);
+  }
+
+  for (const type of ['piercing', 'magnet', 'slow']) {
+    assert.match(GAME_SOURCE, new RegExp(`['"]${type}['"]`), `missing pickup type: ${type}`);
+  }
+
+  assert.match(GAME_SOURCE, /hitTargets/);
+  assert.match(GAME_SOURCE, /TIME_SLOW_DURATION/);
+  assert.match(GAME_SOURCE, /pickupMagnet/);
+  assert.match(GAME_SOURCE, /u\.type === 'piercing' \? 19/);
+  assert.match(GAME_SOURCE, /u\.type === 'magnet' \? 20/);
+  assert.match(GAME_SOURCE, /u\.type === 'slow' \? 21/);
+  assert.match(CSS, /\.chip\.pierce/);
+  assert.match(CSS, /\.chip\.mag/);
+  assert.match(CSS, /\.chip\.slow/);
+});
+
 test('daily challenges and post-run reporting have complete UI contracts', () => {
   for (const id of [
     'dailyPrompt',

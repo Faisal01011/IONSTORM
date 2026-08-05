@@ -26,6 +26,18 @@ const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const rand = (a, b) => a + Math.random() * (b - a);
 const TAU = Math.PI * 2;
 
+const POWERUP_DURATION = 14;
+const TIME_SLOW_DURATION = 7;
+const POWERUP_TYPES = [
+  'triple',
+  'rapid',
+  'shield',
+  'seeker',
+  'piercing',
+  'magnet',
+  'slow'
+];
+
 const DAILY_KEY = 'ionstorm.daily';
 
 let deferredInstallPrompt = null;
@@ -977,6 +989,7 @@ const G = {
 
   timeScale: 1,
   slowT: 0,
+  timeSlowT: 0,
 
   waveQ: 0,
   spawnT: 0,
@@ -1041,6 +1054,8 @@ const G = {
     inv: 0,
     triple: 0,
     rapid: 0,
+    piercing: 0,
+    magnet: 0,
     shield: 0,
     missile: 0,
     mCool: 0,
@@ -1645,6 +1660,10 @@ const AU = {
    16 Interceptor player ship
    17 Bastion player ship
    18 asteroid hazard
+   19 piercing powerup
+   20 magnet powerup
+   21 time-slow powerup
+   22 piercing projectile
    ========================================================================= */
 
 function buildAtlas() {
@@ -2987,6 +3006,142 @@ function buildAtlas() {
     g.stroke();
 
     nog();
+  });
+
+  /* 19 — PIERCING powerup */
+  cell(19, r => {
+    glow('#c48cff', 26);
+    saw(r * 0.94, 8, '#39235c', '#170d2a');
+    nog();
+
+    pupDisc(r, 'rgba(196,140,255,.72)');
+
+    glow('#e5c8ff', 18);
+    g.fillStyle = lin(0, -r * 0.52, 0, r * 0.52, [
+      [0, '#ffffff'],
+      [0.4, '#d8b6ff'],
+      [1, '#7141b0']
+    ]);
+
+    poly([
+      [0, -r * 0.54],
+      [r * 0.14, -r * 0.2],
+      [r * 0.1, r * 0.5],
+      [0, r * 0.6],
+      [-r * 0.1, r * 0.5],
+      [-r * 0.14, -r * 0.2]
+    ]);
+    g.fill();
+
+    nog();
+    g.strokeStyle = 'rgba(229,200,255,.8)';
+    g.lineWidth = 3;
+
+    g.beginPath();
+    g.moveTo(-r * 0.52, -r * 0.18);
+    g.lineTo(r * 0.52, -r * 0.18);
+    g.moveTo(-r * 0.52, r * 0.18);
+    g.lineTo(r * 0.52, r * 0.18);
+    g.stroke();
+  });
+
+  /* 20 — MAGNET powerup */
+  cell(20, r => {
+    glow('#62f4d2', 26);
+    saw(r * 0.94, 10, '#12463f', '#06211f');
+    nog();
+
+    pupDisc(r, 'rgba(98,244,210,.72)');
+
+    glow('#b8ffed', 18);
+    g.strokeStyle = '#b8ffed';
+    g.lineWidth = r * 0.16;
+    g.lineCap = 'round';
+    g.beginPath();
+    g.arc(0, r * 0.02, r * 0.38, Math.PI * 0.14, Math.PI * 0.86, true);
+    g.stroke();
+
+    nog();
+    g.fillStyle = '#5ef4d0';
+    g.fillRect(-r * 0.48, -r * 0.08, r * 0.18, r * 0.32);
+    g.fillRect(r * 0.3, -r * 0.08, r * 0.18, r * 0.32);
+
+    g.fillStyle = '#eaffff';
+    g.fillRect(-r * 0.48, -r * 0.08, r * 0.18, r * 0.08);
+    g.fillRect(r * 0.3, -r * 0.08, r * 0.18, r * 0.08);
+
+    g.strokeStyle = 'rgba(184,255,237,.72)';
+    g.lineWidth = 2;
+    g.beginPath();
+    g.moveTo(-r * 0.64, r * 0.42);
+    g.lineTo(-r * 0.42, r * 0.42);
+    g.moveTo(r * 0.42, r * 0.42);
+    g.lineTo(r * 0.64, r * 0.42);
+    g.stroke();
+  });
+
+  /* 21 — TIME-SLOW powerup */
+  cell(21, r => {
+    glow('#8aa8ff', 26);
+    saw(r * 0.94, 9, '#263a76', '#101a3d');
+    nog();
+
+    pupDisc(r, 'rgba(138,168,255,.72)');
+
+    glow('#d9e2ff', 16);
+    g.strokeStyle = '#d9e2ff';
+    g.lineWidth = 4;
+    g.beginPath();
+    g.arc(0, 0, r * 0.38, 0, TAU);
+    g.stroke();
+
+    nog();
+    g.strokeStyle = '#8aa8ff';
+    g.lineWidth = 3;
+    g.lineCap = 'round';
+    g.beginPath();
+    g.moveTo(0, 0);
+    g.lineTo(0, -r * 0.22);
+    g.moveTo(0, 0);
+    g.lineTo(r * 0.2, r * 0.14);
+    g.stroke();
+
+    g.strokeStyle = 'rgba(217,226,255,.7)';
+    g.lineWidth = 2;
+    g.beginPath();
+    g.moveTo(-r * 0.54, -r * 0.52);
+    g.lineTo(-r * 0.24, -r * 0.52);
+    g.moveTo(r * 0.24, -r * 0.52);
+    g.lineTo(r * 0.54, -r * 0.52);
+    g.stroke();
+  });
+
+  /* 22 — PIERCING projectile */
+  cell(22, r => {
+    glow('#c48cff', 22);
+
+    g.fillStyle = lin(0, -r, 0, r, [
+      [0, '#ffffff'],
+      [0.45, '#d8b6ff'],
+      [1, 'rgba(143,86,220,.16)']
+    ]);
+
+    poly([
+      [0, -r],
+      [r * 0.2, -r * 0.2],
+      [r * 0.12, r * 0.82],
+      [0, r],
+      [-r * 0.12, r * 0.82],
+      [-r * 0.2, -r * 0.2]
+    ]);
+    g.fill();
+
+    nog();
+    g.strokeStyle = 'rgba(229,200,255,.9)';
+    g.lineWidth = 2;
+    g.beginPath();
+    g.arc(0, 0, r * 0.42, 0, TAU);
+    g.stroke();
   });
 
   return cv;
@@ -4793,6 +4948,7 @@ function resetRun(runMode = G.runMode) {
     shake: 0,
     timeScale: 1,
     slowT: 0,
+    timeSlowT: 0,
 
     overDelay: 0,
     overReady: false,
@@ -4827,9 +4983,11 @@ function resetRun(runMode = G.runMode) {
     inv: 1.5,
 
     triple: 0,
-    rapid: ship.rapid ? 14 : 0,
+    rapid: ship.rapid ? POWERUP_DURATION : 0,
+    piercing: 0,
+    magnet: 0,
     shield: Math.min(2, (ship.shield || 0) + (up.shield || 0)),
-    missile: (ship.seeker || up.seeker) ? 14 : 0,
+    missile: (ship.seeker || up.seeker) ? POWERUP_DURATION : 0,
 
     mCool: 0,
     mSide: 1,
@@ -5685,13 +5843,11 @@ function bossDeath(e) {
 
   playVictoryEffect(e.x, e.y);
 
-  const types = ['triple', 'rapid', 'shield', 'seeker'];
-
   for (let k = 0; k < 3; k++) {
     G.powerups.push({
       x: e.x + gameRand(-100, 100),
       y: e.y + gameRand(-35, 35),
-      type: types[(runRandom() * types.length) | 0],
+      type: POWERUP_TYPES[(runRandom() * POWERUP_TYPES.length) | 0],
       t: gameRand(0, 2),
       spark: 0
     });
@@ -5825,12 +5981,10 @@ function killEnemy(e, i) {
   if (runRandom() < dropChance || G.dropDry >= dropLimit) {
     G.dropDry = 0;
 
-    const types = ['triple', 'rapid', 'shield', 'seeker'];
-
     G.powerups.push({
       x: e.x,
       y: e.y,
-      type: types[(runRandom() * types.length) | 0],
+      type: POWERUP_TYPES[(runRandom() * POWERUP_TYPES.length) | 0],
       t: 0,
       spark: 0
     });
@@ -6115,6 +6269,8 @@ function updatePlayer(dt) {
 
   p.triple = Math.max(0, p.triple - dt);
   p.rapid = Math.max(0, p.rapid - dt);
+  p.piercing = Math.max(0, p.piercing - dt);
+  p.magnet = Math.max(0, p.magnet - dt);
 
   const rate = (p.rapid > 0 ? 0.075 : 0.135) * p.rateMult;
 
@@ -6129,7 +6285,9 @@ function updatePlayer(dt) {
         y: p.y - 28,
         vx: Math.sin(a) * 520,
         vy: -Math.cos(a) * 760,
-        r: 6
+        r: 6,
+        piercing: p.piercing > 0,
+        hitTargets: new Set()
       });
     }
 
@@ -6502,6 +6660,9 @@ function updateWorld(dt) {
         u.type === 'triple' ? PAL.cyan :
         u.type === 'rapid' ? PAL.amber :
         u.type === 'seeker' ? PAL.crimson :
+        u.type === 'piercing' ? [0.78, 0.55, 1] :
+        u.type === 'magnet' ? [0.38, 0.96, 0.82] :
+        u.type === 'slow' ? [0.54, 0.66, 1] :
         PAL.teal;
 
       pushP(
@@ -6523,21 +6684,34 @@ function updateWorld(dt) {
     const dy = p.y - u.y;
     const d = Math.hypot(dx, dy);
 
-    if (p.alive && d < G.magnetR && d > 1) {
-      u.x += dx / d * 170 * dt;
-      u.y += dy / d * 170 * dt;
+    const pickupMagnet = p.magnet > 0;
+    const pickupRange = G.magnetR * (pickupMagnet ? 2.2 : 1);
+    const pickupPull = pickupMagnet ? 520 : 170;
+
+    if (p.alive && d < pickupRange && d > 1) {
+      u.x += dx / d * pickupPull * dt;
+      u.y += dy / d * pickupPull * dt;
     }
 
     if (p.alive && d < 34) {
       if (u.type === 'triple') {
-        p.triple = 14;
+        p.triple = POWERUP_DURATION;
         toast('TRIPLE LANCE ENGAGED');
       } else if (u.type === 'rapid') {
-        p.rapid = 14;
+        p.rapid = POWERUP_DURATION;
         toast('RAPID CYCLE ENGAGED');
       } else if (u.type === 'seeker') {
-        p.missile = 14;
+        p.missile = POWERUP_DURATION;
         toast('SEEKER SWARM ARMED', 'red');
+      } else if (u.type === 'piercing') {
+        p.piercing = POWERUP_DURATION;
+        toast('PIERCING LANCE ARMED', 'surge');
+      } else if (u.type === 'magnet') {
+        p.magnet = POWERUP_DURATION;
+        toast('SALVAGE MAGNET ONLINE', 'gold');
+      } else if (u.type === 'slow') {
+        G.timeSlowT = Math.max(G.timeSlowT, TIME_SLOW_DURATION);
+        toast('CHRONO BRAKE ENGAGED', 'surge');
       } else {
         p.shield = Math.min(2, p.shield + 1);
         toast('SHIELD CELL +1');
@@ -6564,6 +6738,9 @@ function updateWorld(dt) {
         cols:
           u.type === 'rapid' ? [PAL.amber, PAL.white] :
           u.type === 'seeker' ? [PAL.crimson, PAL.white] :
+          u.type === 'piercing' ? [[0.78, 0.55, 1], PAL.white] :
+          u.type === 'magnet' ? [[0.38, 0.96, 0.82], PAL.white] :
+          u.type === 'slow' ? [[0.54, 0.66, 1], PAL.white] :
           [PAL.cyan, PAL.white],
         drag: 0.9
       });
@@ -6602,7 +6779,15 @@ function updateWorld(dt) {
           enemyIsTargetable(e) &&
           Math.hypot(b.x - e.x, b.y - e.y) < e.r + b.r
         ) {
-          G.bullets.splice(i, 1);
+          if (b.piercing && b.hitTargets?.has(e)) continue;
+
+          if (b.piercing) {
+            b.hitTargets ||= new Set();
+            b.hitTargets.add(e);
+          } else {
+            G.bullets.splice(i, 1);
+          }
+
           hit = true;
           G.shotsHit++;
 
@@ -6629,7 +6814,7 @@ function updateWorld(dt) {
         }
       }
 
-      if (hit) continue;
+      if (hit && !b.piercing) continue;
     }
 
     for (let i = G.ebullets.length - 1; i >= 0; i--) {
@@ -6765,10 +6950,11 @@ function update(rdt) {
 
   const frozen = G.state === 'paused' || G.state === 'upgrade';
 
-  G.timeScale = G.slowT > 0 ? 0.28 : 1;
+  G.timeScale = G.slowT > 0 ? 0.28 : G.timeSlowT > 0 ? 0.45 : 1;
 
   if (!frozen) {
     G.slowT = Math.max(0, G.slowT - rdt);
+    G.timeSlowT = Math.max(0, G.timeSlowT - rdt);
 
     if (G.surgeActive) {
       G.surgeT -= rdt;
@@ -6863,6 +7049,9 @@ function buildScene() {
       u.type === 'triple' ? 7 :
       u.type === 'rapid' ? 8 :
       u.type === 'seeker' ? 12 :
+      u.type === 'piercing' ? 19 :
+      u.type === 'magnet' ? 20 :
+      u.type === 'slow' ? 21 :
       9;
 
     const bob = Math.sin(u.t * 3) * 4;
@@ -6872,6 +7061,9 @@ function buildScene() {
       u.type === 'triple' ? [0.35, 0.95, 1] :
       u.type === 'rapid' ? [1, 0.72, 0.3] :
       u.type === 'seeker' ? [1, 0.36, 0.28] :
+      u.type === 'piercing' ? [0.78, 0.55, 1] :
+      u.type === 'magnet' ? [0.38, 0.96, 0.82] :
+      u.type === 'slow' ? [0.54, 0.66, 1] :
       [0.4, 1, 0.95];
 
     glow(
@@ -7260,28 +7452,30 @@ function buildScene() {
 
   /* Player bullets */
   for (const b of G.bullets) {
+    const piercing = b.piercing === true;
+
     push(
       addN,
       b.x,
       b.y,
       Math.atan2(b.vx, -b.vy),
-      2,
-      15,
-      42,
+      piercing ? 22 : 2,
+      piercing ? 18 : 15,
+      piercing ? 48 : 42,
       1,
-      1,
-      1,
+      piercing ? 0.86 : 1,
+      piercing ? 0.62 : 1,
       1
     );
 
     glow(
       b.x,
       b.y,
-      26,
-      0.4,
-      0.9,
+      piercing ? 31 : 26,
+      piercing ? 0.78 : 0.4,
+      piercing ? 0.55 : 0.9,
       1,
-      0.45
+      piercing ? 0.62 : 0.45
     );
   }
 }
@@ -7565,9 +7759,12 @@ function hud(rdt) {
     }
   };
 
-  chip($('cTri'), inGame && p.triple > 0, p.triple / 14);
-  chip($('cRap'), inGame && p.rapid > 0, p.rapid / 14);
-  chip($('cMis'), inGame && p.missile > 0, p.missile / 14);
+  chip($('cTri'), inGame && p.triple > 0, p.triple / POWERUP_DURATION);
+  chip($('cRap'), inGame && p.rapid > 0, p.rapid / POWERUP_DURATION);
+  chip($('cMis'), inGame && p.missile > 0, p.missile / POWERUP_DURATION);
+  chip($('cPierce'), inGame && p.piercing > 0, p.piercing / POWERUP_DURATION);
+  chip($('cMag'), inGame && p.magnet > 0, p.magnet / POWERUP_DURATION);
+  chip($('cSlow'), inGame && G.timeSlowT > 0, G.timeSlowT / TIME_SLOW_DURATION);
   chip($('cShd'), inGame && p.shield > 0);
 
   setTxt($('cShdN'), String(p.shield));
