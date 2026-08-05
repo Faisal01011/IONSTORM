@@ -327,6 +327,7 @@ button.cham:disabled {
 #hud.hidden,
 #combo.hidden,
 #chips.hidden,
+#eventHud.hidden,
 #surge.hidden,
 #boss.hidden {
   opacity: 0;
@@ -532,6 +533,76 @@ button.cham:disabled {
   background: linear-gradient(90deg, var(--cyan), var(--amber));
   box-shadow: 0 0 10px var(--cyan-soft);
   transition: width .16s ease;
+}
+
+#eventHud {
+  position: fixed;
+  top: 80px;
+  left: 16px;
+  z-index: 50;
+  width: min(250px, 28vw);
+  padding: 9px 14px 11px;
+  pointer-events: none;
+  border-color: rgba(255, 180, 84, .42);
+  box-shadow: 0 0 22px rgba(255, 180, 84, .12);
+  transition: opacity .35s, border-color .2s, box-shadow .2s;
+}
+
+#eventHud.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.eventKicker,
+#eventName,
+#eventDesc {
+  font-family: 'Orbitron';
+}
+
+.eventKicker {
+  color: var(--dim);
+  font-size: .48rem;
+  letter-spacing: .18em;
+}
+
+#eventName {
+  margin-top: 4px;
+  color: var(--amber);
+  font-size: .75rem;
+  font-weight: 900;
+  letter-spacing: .16em;
+  text-shadow: 0 0 10px rgba(255, 180, 84, .38);
+}
+
+#eventDesc {
+  margin-top: 5px;
+  color: var(--dim);
+  font-size: .48rem;
+  line-height: 1.45;
+  letter-spacing: .1em;
+}
+
+#eventHud.eliteEvent {
+  border-color: rgba(255, 92, 71, .62);
+  box-shadow: 0 0 22px rgba(255, 92, 71, .16);
+}
+
+#eventHud.eliteEvent #eventName {
+  color: #ff8f7d;
+  text-shadow: 0 0 10px rgba(255, 92, 71, .46);
+}
+
+#eventHud.stormEvent {
+  border-color: rgba(255, 180, 84, .62);
+}
+
+#eventHud.salvageEvent {
+  border-color: rgba(92, 255, 220, .58);
+  box-shadow: 0 0 22px rgba(92, 255, 220, .14);
+}
+
+#eventHud.salvageEvent #eventName {
+  color: var(--teal);
 }
 
 #surge {
@@ -2585,6 +2656,22 @@ button.buy.max {
     top: calc(var(--safe-top) + 51px);
     width: min(94vw, 520px);
     padding: 7px 10px 8px;
+  }
+
+  #eventHud {
+    top: calc(var(--safe-top) + 51px);
+    left: var(--safe-left);
+    width: min(230px, 62vw);
+    padding: 7px 10px 8px;
+  }
+
+  #eventName {
+    font-size: .58rem;
+  }
+
+  #eventDesc {
+    font-size: .4rem;
+    letter-spacing: .07em;
   }
 
   #bossName,
