@@ -333,6 +333,73 @@ const WAVE_EVENTS = {
   }
 };
 
+/* Dreadnought encounters are deliberately readable: each phase has a clear
+   identity, a telegraphed attack cadence, and a short exposed-core window.
+   The body remains damageable while the core is shielded, but pilots who
+   time their fire around the opening deal meaningfully more damage. */
+const BOSS_PHASES = {
+  1: {
+    name: 'HUNTER',
+    threshold: 0.75,
+    attack: 'AIMED BARRAGE',
+    telegraph: 0.55,
+    cooldown: 1.35,
+    coreWindow: 0.72,
+    coreMultiplier: 1.28,
+    addInterval: 8.4,
+    move: 0.34
+  },
+
+  2: {
+    name: 'SIEGE',
+    threshold: 0.5,
+    attack: 'SPIRAL LANCE',
+    telegraph: 0.72,
+    cooldown: 1.58,
+    coreWindow: 0.82,
+    coreMultiplier: 1.44,
+    addInterval: 6.6,
+    move: 0.42
+  },
+
+  3: {
+    name: 'BREACH',
+    threshold: 0.25,
+    attack: 'BREACH WALL',
+    telegraph: 0.62,
+    cooldown: 1.18,
+    coreWindow: 0.64,
+    coreMultiplier: 1.58,
+    addInterval: 5.35,
+    move: 0.56
+  },
+
+  4: {
+    name: 'MELTDOWN',
+    threshold: 0,
+    attack: 'CORE MELTDOWN',
+    telegraph: 0.5,
+    cooldown: 0.92,
+    coreWindow: 0.48,
+    coreMultiplier: 1.72,
+    addInterval: 4.5,
+    move: 0.68
+  }
+};
+
+function bossPhaseProfile(phase = 1) {
+  return BOSS_PHASES[phase] || BOSS_PHASES[1];
+}
+
+function bossPhaseForHealth(fraction) {
+  const hp = clamp(Number(fraction) || 0, 0, 1);
+
+  if (hp > BOSS_PHASES[1].threshold) return 1;
+  if (hp > BOSS_PHASES[2].threshold) return 2;
+  if (hp > BOSS_PHASES[3].threshold) return 3;
+  return 4;
+}
+
 function getUpgradeLevel(id) {
   return META.upgrades[id] || 0;
 }
@@ -4583,8 +4650,23 @@ function enemyIsTargetable(e) {
   return e.y >= Math.max(e.r || 0, 0);
 }
 
+function damageBoss(e, amount) {
+  if (!e.entered || e.phaseTransitionT > 0) return false;
+
+  const profile = bossPhaseProfile(e.phase);
+  const raw = Math.max(0, Number(amount) || 0);
+  const multiplier = e.coreOpen ? profile.coreMultiplier : 0.72;
+
+  e.hp -= raw * multiplier;
+  return e.hp <= 0;
+}
+
 function damageEnemy(e, amount) {
   let remaining = Math.max(0, Number(amount) || 0);
+
+  if (e.type === 'boss') {
+    return damageBoss(e, remaining);
+  }
 
   if (e.eliteKind === 'aegis' && e.shieldHp > 0) {
     const absorbed = Math.min(e.shieldHp, remaining);
@@ -4762,7 +4844,20 @@ function spawnBossAdd(e) {
 }
 
 function bossPhaseFX(e) {
+  const profile = bossPhaseProfile(e.phase);
+
   e.flash = 1;
+  e.phaseTransitionT = 1.1;
+  e.telegraphT = 0;
+  e.coreOpenT = 0;
+  e.coreOpen = false;
+  e.attackT = profile.cooldown;
+  e.addT = profile.addInterval;
+  e.attackName = 'PHASE SHIFT';
+
+  /* A phase change is a readable reset point. Clearing the old pattern keeps
+     bullets from one phase leaking unfairly into the next one. */
+  G.ebullets.length = 0;
 
   G.rings.push({
     x: e.x,
@@ -4786,11 +4881,13 @@ function bossPhaseFX(e) {
   G.shake = Math.min(G.shake + (SETTINGS.reduceShake ? 3 : 8), SETTINGS.reduceShake ? 14 : 38);
 
   AU.bossPhase();
-  toast('PHASE ' + e.phase + ' — CORE EXPOSED', 'red');
+  banner('PHASE ' + e.phase + ' — ' + profile.name);
+  toast('DREADNOUGHT ' + profile.name + ' ONLINE', 'red');
 }
 
 function spawnBoss() {
   const lvl = Math.max(1, Math.floor(G.wave / 5));
+  const hp = 170 + lvl * 95;
 
   G.enemies.push({
     type: 'boss',
@@ -4798,10 +4895,15 @@ function spawnBoss() {
     y: -240,
     t: rand(0, 6),
     flash: 0,
-    fireT: 1.2,
+    attackT: 1.2,
+    telegraphT: 0,
+    coreOpenT: 0,
+    phaseTransitionT: 0,
+    coreOpen: false,
+    attackName: BOSS_PHASES[1].attack,
 
-    hp: 170 + lvl * 95,
-    maxHp: 170 + lvl * 95,
+    hp,
+    maxHp: hp,
 
     r: 105,
     val: 5000 + lvl * 2500,
@@ -4809,9 +4911,48 @@ function spawnBoss() {
     phase: 1,
     pattern: 0,
     spiralA: 0,
-    addT: 6,
+    addT: BOSS_PHASES[1].addInterval,
     entered: false
   });
+}
+
+function beginBossAttack(e) {
+  const profile = bossPhaseProfile(e.phase);
+
+  e.telegraphT = profile.telegraph;
+  e.attackName = profile.attack;
+  e.coreOpen = false;
+  e.coreOpenT = 0;
+}
+
+function fireBossAttack(e) {
+  const profile = bossPhaseProfile(e.phase);
+  e.pattern = (e.pattern + 1) % 4;
+
+  if (e.phase === 1) {
+    bossAimedSpread(e, 5, 0.2);
+  } else if (e.phase === 2) {
+    bossSpiral(e, 4);
+    bossAimedSpread(e, 3, 0.24);
+  } else if (e.phase === 3) {
+    if (e.pattern % 2 === 0) {
+      bossWall(e);
+    } else {
+      bossAimedSpread(e, 7, 0.16);
+    }
+  } else if (e.pattern % 3 === 0) {
+    bossWall(e);
+    bossAimedSpread(e, 3, 0.28);
+  } else if (e.pattern % 3 === 1) {
+    bossSpiral(e, 5);
+  } else {
+    bossAimedSpread(e, 9, 0.12);
+  }
+
+  e.telegraphT = 0;
+  e.coreOpen = true;
+  e.coreOpenT = profile.coreWindow;
+  e.attackT = profile.cooldown;
 }
 
 function updateBoss(e, dt) {
@@ -4822,57 +4963,61 @@ function updateBoss(e, dt) {
 
     if (e.y >= 150) {
       e.entered = true;
+      e.attackT = 1.05;
     }
+
+    return;
   } else {
     e.y += (150 - e.y) * 1.8 * dt;
 
     const target = clamp(p.x, G.w * 0.2, G.w * 0.8);
+    const profile = bossPhaseProfile(e.phase);
 
-    e.x += clamp(target - e.x, -120, 120) * 0.34 * dt;
-    e.x += Math.sin(e.t * 0.62) * 52 * dt;
+    e.x += clamp(target - e.x, -120, 120) * profile.move * dt;
+    e.x += Math.sin(e.t * 0.62) * (42 + e.phase * 8) * dt;
 
     e.x = clamp(e.x, 110, G.w - 110);
   }
 
   const frac = clamp(e.hp / e.maxHp, 0, 1);
-  const next = frac > 0.66 ? 1 : frac > 0.33 ? 2 : 3;
+  const next = bossPhaseForHealth(frac);
 
   if (next !== e.phase) {
     e.phase = next;
     bossPhaseFX(e);
   }
 
+  if (e.phaseTransitionT > 0) {
+    e.phaseTransitionT = Math.max(0, e.phaseTransitionT - dt);
+    e.coreOpen = false;
+    e.coreOpenT = 0;
+    return;
+  }
+
   if (e.entered && G.state === 'playing' && p.alive) {
-    e.fireT -= dt;
+    if (e.telegraphT > 0) {
+      e.telegraphT -= dt;
 
-    if (e.fireT <= 0) {
-      if (e.phase === 1) {
-        bossAimedSpread(e, 5, 0.20);
-        e.fireT = Math.max(0.75, 1.25 - G.wave * 0.02);
-      } else if (e.phase === 2) {
-        bossSpiral(e, 3);
-        e.fireT = 0.075;
-      } else {
-        e.pattern = (e.pattern + 1) % 4;
+      if (e.telegraphT <= 0) {
+        fireBossAttack(e);
+      }
+    } else if (e.coreOpenT > 0) {
+      e.coreOpenT -= dt;
+      e.coreOpen = e.coreOpenT > 0;
+    } else {
+      e.coreOpen = false;
+      e.attackT -= dt;
 
-        if (e.pattern === 0) {
-          bossWall(e);
-        } else if (e.pattern === 1) {
-          bossAimedSpread(e, 7, 0.15);
-        } else if (e.pattern === 2) {
-          bossSpiral(e, 4);
-        } else {
-          bossAimedSpread(e, 3, 0.34);
-        }
-
-        e.fireT = e.pattern === 2 ? 0.08 : 0.92;
+      if (e.attackT <= 0) {
+        beginBossAttack(e);
       }
     }
 
     e.addT -= dt;
 
     if (e.addT <= 0) {
-      e.addT = Math.max(4.5, 9 - G.wave * 0.12);
+      const profile = bossPhaseProfile(e.phase);
+      e.addT = Math.max(profile.addInterval * 0.72, profile.addInterval - G.wave * 0.06);
       spawnBossAdd(e);
     }
   }
@@ -6005,7 +6150,44 @@ function buildScene() {
       const phaseCol =
         e.phase === 1 ? [1, 0.36, 0.22] :
         e.phase === 2 ? [1, 0.62, 0.28] :
-        [1, 0.32, 1];
+        e.phase === 3 ? [0.82, 0.3, 1] :
+        [1, 0.16, 0.48];
+
+      if (e.phaseTransitionT > 0) {
+        const pulse = 1 + Math.sin(t * 12) * 0.12;
+
+        glow(
+          e.x,
+          e.y,
+          e.r * 5.4 * pulse,
+          1,
+          0.7,
+          0.18,
+          0.34 + 0.12 * Math.sin(t * 10)
+        );
+      } else if (e.telegraphT > 0) {
+        const pulse = 1 + Math.sin(t * 16) * 0.16;
+
+        glow(
+          e.x,
+          e.y,
+          e.r * 5 * pulse,
+          1,
+          0.2,
+          0.16,
+          0.3 + 0.16 * Math.sin(t * 14)
+        );
+      } else if (e.coreOpen) {
+        glow(
+          e.x,
+          e.y,
+          e.r * 1.5,
+          0.35,
+          1,
+          0.9,
+          0.64 + 0.16 * Math.sin(t * 11)
+        );
+      }
 
       glow(
         e.x,
@@ -6556,15 +6738,37 @@ function hud(rdt) {
   setChromeVisible('boss', !!showBoss);
 
   if (showBoss) {
+    const profile = bossPhaseProfile(boss.phase);
+    const phaseShift = boss.phaseTransitionT > 0;
+    const telegraph = boss.telegraphT > 0;
+    const coreOpen = boss.coreOpen && !phaseShift;
+
     setTxt(
       $('bossName'),
       'DREADNOUGHT MK-' + Math.max(1, Math.ceil(G.wave / 5))
     );
 
-    setTxt($('bossPhase'), 'PHASE ' + boss.phase);
+    setTxt($('bossPhase'), 'PHASE ' + boss.phase + ' · ' + profile.name);
+
+    setTxt(
+      $('bossStatus'),
+      phaseShift ? 'PHASE SHIFT' :
+        telegraph ? 'INCOMING — ' + boss.attackName :
+          coreOpen ? 'CORE EXPOSED' :
+            'CORE SHIELDED'
+    );
+
+    setTxt(
+      $('bossAttack'),
+      phaseShift ? 'SYSTEM RECONFIGURATION' : profile.attack
+    );
 
     $('bossBar').firstElementChild.style.width =
       (clamp(boss.hp / boss.maxHp, 0, 1) * 100) + '%';
+
+    $('boss').classList.toggle('coreOpen', coreOpen);
+    $('boss').classList.toggle('telegraph', telegraph);
+    $('boss').classList.toggle('phaseShift', phaseShift);
   }
 
   const p = G.player;
