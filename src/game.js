@@ -333,10 +333,11 @@ const WAVE_EVENTS = {
   }
 };
 
-/* Dreadnought encounters are deliberately readable: each phase has a clear
-   identity, a telegraphed attack cadence, and a short exposed-core window.
-   The body remains damageable while the core is shielded, but pilots who
-   time their fire around the opening deal meaningfully more damage. */
+/* Dreadnought phase profiles are the readable base kit shared by every
+   encounter. Encounter tiers below them keep later boss waves from becoming
+   a copy of wave 5: each Mk gains hull, pressure, faster patterns, more
+   reinforcements, and a different attack doctrine while the same telegraph /
+   counterfire language remains intact. */
 const BOSS_PHASES = {
   1: {
     name: 'HUNTER',
@@ -387,8 +388,95 @@ const BOSS_PHASES = {
   }
 };
 
+const BOSS_VARIANTS = [
+  {
+    id: 'ravager',
+    name: 'RAVAGER',
+    style: 'direct'
+  },
+
+  {
+    id: 'warden',
+    name: 'WARDEN',
+    style: 'spiral'
+  },
+
+  {
+    id: 'harrier',
+    name: 'HARRIER',
+    style: 'lane'
+  },
+
+  {
+    id: 'swarmcore',
+    name: 'SWARMCORE',
+    style: 'swarm'
+  },
+
+  {
+    id: 'annihilator',
+    name: 'ANNIHILATOR',
+    style: 'mixed'
+  }
+];
+
 function bossPhaseProfile(phase = 1) {
   return BOSS_PHASES[phase] || BOSS_PHASES[1];
+}
+
+function bossVariantForTier(tier = 1) {
+  const index = clamp(Math.floor(Number(tier) || 1) - 1, 0, BOSS_VARIANTS.length - 1);
+  return BOSS_VARIANTS[index];
+}
+
+function bossEncounterProfile(tier = 1) {
+  const encounter = Math.max(1, Math.floor(Number(tier) || 1));
+  const step = encounter - 1;
+  const variant = bossVariantForTier(encounter);
+
+  return {
+    tier: encounter,
+    variantId: variant.id,
+    variantName: variant.name,
+    style: variant.style,
+
+    /* Hull growth is deliberately nonlinear after the second encounter. */
+    hpMultiplier: 1 + step * 0.3 + Math.min(0.32, step * step * 0.012),
+    damageMultiplier: 1 + Math.min(0.8, step * 0.12),
+    damageTakenMultiplier: Math.max(0.84, 1 - step * 0.04),
+    cooldownMultiplier: Math.max(0.67, 1 - step * 0.055),
+    telegraphMultiplier: Math.max(0.74, 1 - step * 0.03),
+    projectileSpeedMultiplier: 1 + Math.min(0.42, step * 0.06),
+    moveMultiplier: 1 + Math.min(0.4, step * 0.06),
+    addIntervalMultiplier: Math.max(0.58, 1 - step * 0.08),
+    addCount: 1 + Math.min(2, Math.floor(step / 2)),
+    coreWindowMultiplier: Math.max(0.62, 1 - step * 0.07),
+    extraProjectiles: Math.min(4, Math.floor(step / 2))
+  };
+}
+
+function bossCombatProfile(e = {}) {
+  const phaseNumber = Math.max(1, Math.floor(Number(e.phase) || 1));
+  const phase = bossPhaseProfile(phaseNumber);
+  const encounter = bossEncounterProfile(e.tier || 1);
+  const phaseStep = phaseNumber - 1;
+
+  return {
+    ...phase,
+    cooldown: phase.cooldown * encounter.cooldownMultiplier,
+    telegraph: phase.telegraph * encounter.telegraphMultiplier,
+    coreWindow: Math.max(0.28, phase.coreWindow * encounter.coreWindowMultiplier),
+    addInterval: phase.addInterval * encounter.addIntervalMultiplier,
+    move: phase.move * encounter.moveMultiplier,
+    damageMultiplier: encounter.damageMultiplier * (1 + phaseStep * 0.06),
+    damageTakenMultiplier: encounter.damageTakenMultiplier * Math.max(0.82, 1 - phaseStep * 0.04),
+    projectileSpeedMultiplier: encounter.projectileSpeedMultiplier,
+    addCount: encounter.addCount,
+    extraProjectiles: encounter.extraProjectiles,
+    variantId: encounter.variantId,
+    variantName: encounter.variantName,
+    style: encounter.style
+  };
 }
 
 function bossPhaseForHealth(fraction) {
@@ -4653,9 +4741,11 @@ function enemyIsTargetable(e) {
 function damageBoss(e, amount) {
   if (!e.entered || e.phaseTransitionT > 0) return false;
 
-  const profile = bossPhaseProfile(e.phase);
+  const profile = bossCombatProfile(e);
   const raw = Math.max(0, Number(amount) || 0);
-  const multiplier = e.coreOpen ? profile.coreMultiplier : 0.72;
+  const multiplier =
+    (e.coreOpen ? profile.coreMultiplier : 0.72) *
+    profile.damageTakenMultiplier;
 
   e.hp -= raw * multiplier;
   return e.hp <= 0;
@@ -4754,9 +4844,9 @@ function activateSurge() {
    Boss helpers
    ========================================================================= */
 
-function eb(x, y, vx, vy, r = 7) {
+function eb(x, y, vx, vy, r = 7, damage = 1) {
   if (G.ebullets.length < 340) {
-    G.ebullets.push({ x, y, vx, vy, r });
+    G.ebullets.push({ x, y, vx, vy, r, damage });
   }
 }
 
@@ -4765,7 +4855,11 @@ function bossAimedSpread(e, n, spread) {
   if (!p.alive) return;
 
   const base = Math.atan2(p.y - e.y, p.x - e.x);
-  const spd = Math.min(210 + G.wave * 7, 430);
+  const combat = bossCombatProfile(e);
+  const spd = Math.min(
+    (210 + G.wave * 7) * combat.projectileSpeedMultiplier,
+    520
+  );
 
   for (let i = 0; i < n; i++) {
     const a = base + (i - (n - 1) / 2) * spread;
@@ -4773,7 +4867,9 @@ function bossAimedSpread(e, n, spread) {
       e.x,
       e.y + e.r * 0.35,
       Math.cos(a) * spd,
-      Math.sin(a) * spd
+      Math.sin(a) * spd,
+      7,
+      combat.damageMultiplier
     );
   }
 }
@@ -4781,7 +4877,11 @@ function bossAimedSpread(e, n, spread) {
 function bossSpiral(e, arms = 3) {
   e.spiralA = (e.spiralA || 0) + 0.42;
 
-  const spd = Math.min(165 + G.wave * 5, 360);
+  const combat = bossCombatProfile(e);
+  const spd = Math.min(
+    (165 + G.wave * 5) * combat.projectileSpeedMultiplier,
+    450
+  );
 
   for (let k = 0; k < arms; k++) {
     const a = e.spiralA + k * TAU / arms;
@@ -4790,61 +4890,82 @@ function bossSpiral(e, arms = 3) {
       e.y,
       Math.cos(a) * spd,
       Math.sin(a) * spd,
-      6
+      6,
+      combat.damageMultiplier
     );
   }
 }
 
 function bossWall(e) {
-  const n = 11;
+  const combat = bossCombatProfile(e);
+  const n = 11 + Math.min(3, combat.extraProjectiles);
   const gap = (Math.random() * n) | 0;
   const y = e.y + e.r * 0.45;
-  const spd = Math.min(210 + G.wave * 6, 390);
+  const spd = Math.min(
+    (210 + G.wave * 6) * combat.projectileSpeedMultiplier,
+    470
+  );
 
   for (let i = 0; i < n; i++) {
     if (i === gap || i === gap + 1) continue;
 
     const x = e.x + (i - (n - 1) / 2) * 48;
 
-    eb(x, y, rand(-14, 14), spd, 7);
+    eb(x, y, rand(-14, 14), spd, 7, combat.damageMultiplier);
   }
 }
 
-function spawnBossAdd(e) {
-  if (G.enemies.length > 56) return;
+function spawnBossAdd(e, count = 1) {
+  const eliteChanceForAdds = Math.min(
+    0.32,
+    Math.max(0, (e.tier || 1) - 2) * 0.08
+  );
 
-  const type = Math.random() < 0.72 ? 'drone' : 'striker';
-  const threat = waveProfile();
+  for (let k = 0; k < count; k++) {
+    if (G.enemies.length > 56) return;
 
-  const a = {
-    type,
-    x: clamp(e.x + rand(-260, 260), 50, G.w - 50),
-    y: -60,
-    t: rand(0, 6),
-    flash: 0,
-    fireT: rand(1.2, 2.4)
-  };
+    const type = Math.random() < Math.max(0.58, 0.72 - (e.tier || 1) * 0.018)
+      ? 'drone'
+      : 'striker';
+    const threat = waveProfile();
 
-  if (type === 'drone') {
-    a.hp = threat.droneHp;
-    a.r = 24;
-    a.baseX = a.x;
-    a.amp = rand(36, 100);
-    a.freq = rand(1.2, 2.2);
-    a.vy = (rand(82, 116) + G.wave * 3) * threat.speed;
-    a.val = 100;
-  } else {
-    a.hp = threat.strikerHp;
-    a.r = 22;
-    a.vy = (rand(132, 172) + G.wave * 4) * threat.speed;
-    a.val = 250;
+    const a = {
+      type,
+      x: clamp(e.x + rand(-260, 260), 50, G.w - 50),
+      y: -60,
+      t: rand(0, 6),
+      flash: 0,
+      fireT: rand(1.2, 2.4)
+    };
+
+    if (type === 'drone') {
+      a.hp = threat.droneHp;
+      a.r = 24;
+      a.baseX = a.x;
+      a.amp = rand(36, 100);
+      a.freq = rand(1.2, 2.2);
+      a.vy = (rand(82, 116) + G.wave * 3) * threat.speed;
+      a.val = 100;
+    } else {
+      a.hp = threat.strikerHp;
+      a.r = 22;
+      a.vy = (rand(132, 172) + G.wave * 4) * threat.speed;
+      a.val = 250;
+    }
+
+    if (Math.random() < eliteChanceForAdds) {
+      applyEliteModifier(a);
+    }
+
+    /* Higher-tier bosses do not just summon more bodies; their escorts also
+       arrive with the same late-run durability curve as the main wave. */
+    a.vy *= 1 + Math.min(0.28, ((e.tier || 1) - 1) * 0.04);
+    G.enemies.push(a);
   }
-
-  G.enemies.push(a);
 }
 
 function bossPhaseFX(e) {
-  const profile = bossPhaseProfile(e.phase);
+  const profile = bossCombatProfile(e);
 
   e.flash = 1;
   e.phaseTransitionT = 1.1;
@@ -4887,7 +5008,8 @@ function bossPhaseFX(e) {
 
 function spawnBoss() {
   const lvl = Math.max(1, Math.floor(G.wave / 5));
-  const hp = 170 + lvl * 95;
+  const encounter = bossEncounterProfile(lvl);
+  const hp = Math.round((170 + lvl * 95) * encounter.hpMultiplier);
 
   G.enemies.push({
     type: 'boss',
@@ -4908,45 +5030,70 @@ function spawnBoss() {
     r: 105,
     val: 5000 + lvl * 2500,
 
+    tier: lvl,
+    variantId: encounter.variantId,
+    variantName: encounter.variantName,
     phase: 1,
     pattern: 0,
     spiralA: 0,
-    addT: BOSS_PHASES[1].addInterval,
+    addT: BOSS_PHASES[1].addInterval * encounter.addIntervalMultiplier,
     entered: false
   });
 }
 
 function beginBossAttack(e) {
-  const profile = bossPhaseProfile(e.phase);
+  const profile = bossCombatProfile(e);
 
   e.telegraphT = profile.telegraph;
-  e.attackName = profile.attack;
+  e.attackName = profile.variantName + ' · ' + profile.attack;
   e.coreOpen = false;
   e.coreOpenT = 0;
 }
 
 function fireBossAttack(e) {
-  const profile = bossPhaseProfile(e.phase);
+  const profile = bossCombatProfile(e);
+  const pressure = profile.extraProjectiles;
+  const cycle = e.pattern % 4;
+
   e.pattern = (e.pattern + 1) % 4;
 
   if (e.phase === 1) {
-    bossAimedSpread(e, 5, 0.2);
+    bossAimedSpread(e, 5 + pressure * 2, Math.max(0.12, 0.2 - pressure * 0.015));
+
+    if (profile.style === 'spiral' || (profile.style === 'mixed' && cycle === 0)) {
+      bossSpiral(e, 2 + pressure);
+    }
   } else if (e.phase === 2) {
-    bossSpiral(e, 4);
-    bossAimedSpread(e, 3, 0.24);
+    bossSpiral(e, 4 + pressure);
+    bossAimedSpread(e, 3 + pressure, 0.24);
+
+    if (profile.style === 'lane' || (profile.style === 'mixed' && cycle === 1)) {
+      bossCrossfire(e, 2 + pressure);
+    }
   } else if (e.phase === 3) {
-    if (e.pattern % 2 === 0) {
+    if (profile.style === 'spiral' || (profile.style === 'mixed' && cycle === 2)) {
+      bossSpiral(e, 5 + pressure);
+      bossCrossfire(e, 2 + pressure);
+    } else if (cycle % 2 === 0) {
       bossWall(e);
     } else {
-      bossAimedSpread(e, 7, 0.16);
+      bossAimedSpread(e, 7 + pressure * 2, Math.max(0.1, 0.16 - pressure * 0.01));
     }
-  } else if (e.pattern % 3 === 0) {
+  } else if (profile.style === 'swarm') {
     bossWall(e);
-    bossAimedSpread(e, 3, 0.28);
-  } else if (e.pattern % 3 === 1) {
-    bossSpiral(e, 5);
+    bossAimedSpread(e, 5 + pressure * 2, 0.18);
+    spawnBossAdd(e, 1 + pressure);
+  } else if (cycle % 3 === 0) {
+    bossWall(e);
+    bossAimedSpread(e, 3 + pressure, 0.28);
+  } else if (cycle % 3 === 1) {
+    bossSpiral(e, 5 + pressure);
   } else {
-    bossAimedSpread(e, 9, 0.12);
+    bossAimedSpread(e, 9 + pressure * 2, Math.max(0.08, 0.12 - pressure * 0.008));
+
+    if (profile.style === 'lane' || profile.style === 'mixed') {
+      bossCrossfire(e, 2 + pressure);
+    }
   }
 
   e.telegraphT = 0;
@@ -4971,10 +5118,11 @@ function updateBoss(e, dt) {
     e.y += (150 - e.y) * 1.8 * dt;
 
     const target = clamp(p.x, G.w * 0.2, G.w * 0.8);
-    const profile = bossPhaseProfile(e.phase);
+    const profile = bossCombatProfile(e);
 
     e.x += clamp(target - e.x, -120, 120) * profile.move * dt;
-    e.x += Math.sin(e.t * 0.62) * (42 + e.phase * 8) * dt;
+    e.x += Math.sin(e.t * 0.62) * (42 + e.phase * 8) *
+      bossEncounterProfile(e.tier).moveMultiplier * dt;
 
     e.x = clamp(e.x, 110, G.w - 110);
   }
@@ -5016,9 +5164,12 @@ function updateBoss(e, dt) {
     e.addT -= dt;
 
     if (e.addT <= 0) {
-      const profile = bossPhaseProfile(e.phase);
-      e.addT = Math.max(profile.addInterval * 0.72, profile.addInterval - G.wave * 0.06);
-      spawnBossAdd(e);
+      const profile = bossCombatProfile(e);
+      e.addT = Math.max(
+        profile.addInterval * 0.72,
+        profile.addInterval - G.wave * 0.06
+      );
+      spawnBossAdd(e, profile.addCount);
     }
   }
 }
@@ -5225,8 +5376,9 @@ function killEnemy(e, i) {
   awardRunXp(runXpValue(e.type, e.elite));
 }
 
-function hitPlayer() {
+function hitPlayer(damage = 1) {
   const p = G.player;
+  const hullDamage = clamp(Math.round(Number(damage) || 1), 1, 2);
 
   if (p.inv > 0 || !p.alive) return;
 
@@ -5260,7 +5412,11 @@ function hitPlayer() {
     return;
   }
 
-  G.lives--;
+  G.lives -= hullDamage;
+
+  if (hullDamage > 1) {
+    toast('HEAVY IMPACT', 'red');
+  }
 
   if (G.comboGuard > 0) {
     G.comboGuard--;
@@ -5902,7 +6058,7 @@ function updateWorld(dt) {
 
       if (Math.hypot(b.x - p.x, b.y - p.y) < p.r + b.r) {
         G.ebullets.splice(i, 1);
-        hitPlayer();
+        hitPlayer(b.damage);
       }
     }
 
@@ -5975,6 +6131,32 @@ function ambient(dt) {
       rand(0.9, 1.4),
       rand(4, 6),
       1
+    );
+  }
+}
+
+function bossCrossfire(e, count = 2) {
+  const p = G.player;
+  if (!p.alive) return;
+
+  const combat = bossCombatProfile(e);
+  const base = Math.atan2(p.y - e.y, p.x - e.x);
+  const spd = Math.min(
+    (190 + G.wave * 6) * combat.projectileSpeedMultiplier,
+    480
+  );
+
+  for (let i = 0; i < count; i++) {
+    const side = i % 2 === 0 ? -1 : 1;
+    const a = base + side * (0.42 + i * 0.08);
+
+    eb(
+      e.x,
+      e.y + e.r * 0.35,
+      Math.cos(a) * spd,
+      Math.sin(a) * spd,
+      7,
+      combat.damageMultiplier
     );
   }
 }
@@ -6738,14 +6920,16 @@ function hud(rdt) {
   setChromeVisible('boss', !!showBoss);
 
   if (showBoss) {
-    const profile = bossPhaseProfile(boss.phase);
+    const profile = bossCombatProfile(boss);
+    const encounter = bossEncounterProfile(boss.tier);
     const phaseShift = boss.phaseTransitionT > 0;
     const telegraph = boss.telegraphT > 0;
     const coreOpen = boss.coreOpen && !phaseShift;
 
     setTxt(
       $('bossName'),
-      'DREADNOUGHT MK-' + Math.max(1, Math.ceil(G.wave / 5))
+      'DREADNOUGHT MK-' + Math.max(1, Math.ceil(G.wave / 5)) +
+        ' · ' + encounter.variantName
     );
 
     setTxt($('bossPhase'), 'PHASE ' + boss.phase + ' · ' + profile.name);
@@ -6760,7 +6944,8 @@ function hud(rdt) {
 
     setTxt(
       $('bossAttack'),
-      phaseShift ? 'SYSTEM RECONFIGURATION' : profile.attack
+      phaseShift ? 'SYSTEM RECONFIGURATION' :
+        profile.variantName + ' · ' + profile.attack
     );
 
     $('bossBar').firstElementChild.style.width =

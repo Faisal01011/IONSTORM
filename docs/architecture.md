@@ -42,10 +42,16 @@ frequency, Asteroid Storm increases debris, and Salvage Run improves pickup
 drops. Event state is reset at the start of each wave and does not persist.
 
 Every fifth wave creates one Dreadnought. `BOSS_PHASES` maps its health bands to
-four readable combat profiles: Hunter, Siege, Breach, and Meltdown. The boss
-telegraphs each attack through `telegraphT` before emitting projectiles, pauses
-briefly during `phaseTransitionT`, and exposes its core through `coreOpenT` after
-an attack. `damageBoss()` keeps the body damageable while shielded, increases
+four readable combat profiles: Hunter, Siege, Breach, and Meltdown. The separate
+`bossEncounterProfile()` scales the later Mk encounters: hull, damage resistance,
+projectile speed, attack cadence, reinforcement count, and counter-window length
+all move against the pilot over time. `BOSS_VARIANTS` changes the attack doctrine
+between Ravager, Warden, Harrier, Swarmcore, and Annihilator encounters, so a
+later boss is not just the wave-5 boss with a larger health bar.
+
+The boss telegraphs each attack through `telegraphT` before emitting projectiles,
+pauses briefly during `phaseTransitionT`, and exposes its core through `coreOpenT`
+after an attack. `damageBoss()` keeps the body damageable while shielded, increases
 damage during the exposed window, and makes phase changes fair by temporarily
 ignoring hits and clearing the previous bullet pattern.
 

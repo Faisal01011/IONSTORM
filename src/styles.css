@@ -713,14 +713,19 @@ button.cham:disabled {
 }
 
 #bossName {
+  min-width: 0;
+  overflow: hidden;
   font-family: 'Orbitron';
   font-size: .62rem;
   letter-spacing: .24em;
   color: #ff8f7d;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   text-shadow: 0 0 10px rgba(255, 92, 71, .4);
 }
 
 #bossPhase {
+  flex: 0 0 auto;
   font-family: 'Orbitron';
   font-size: .56rem;
   letter-spacing: .24em;

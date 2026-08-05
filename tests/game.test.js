@@ -152,6 +152,7 @@ function makeHarness() {
       ELITE_TYPES,
       WAVE_EVENTS,
       BOSS_PHASES,
+      BOSS_VARIANTS,
       AU,
       COMPUTE_WGSL,
       PART_WGSL,
@@ -165,6 +166,9 @@ function makeHarness() {
       waveEvent,
       bossPhaseProfile,
       bossPhaseForHealth,
+      bossVariantForTier,
+      bossEncounterProfile,
+      bossCombatProfile,
       spawnBoss,
       updateBoss,
       damageBoss,
@@ -285,6 +289,79 @@ test('Dreadnoughts expose four distinct escalating phase profiles', () => {
   assert.equal(api.bossPhaseProfile(4).name, 'MELTDOWN');
   assert.ok(api.BOSS_PHASES[4].cooldown < api.BOSS_PHASES[1].cooldown);
   assert.ok(api.BOSS_PHASES[4].move > api.BOSS_PHASES[1].move);
+});
+
+test('later Dreadnought encounters escalate without repeating the wave 5 boss', () => {
+  const { api } = makeHarness();
+  const first = api.bossEncounterProfile(1);
+  const middle = api.bossEncounterProfile(3);
+  const late = api.bossEncounterProfile(5);
+
+  assert.equal(api.bossVariantForTier(1).id, 'ravager');
+  assert.equal(api.bossVariantForTier(5).id, 'annihilator');
+  assert.equal(api.bossVariantForTier(99).id, 'annihilator');
+
+  assert.ok(middle.hpMultiplier > first.hpMultiplier);
+  assert.ok(late.hpMultiplier > middle.hpMultiplier);
+  assert.ok(middle.damageMultiplier > first.damageMultiplier);
+  assert.ok(late.damageMultiplier > middle.damageMultiplier);
+  assert.ok(late.cooldownMultiplier < middle.cooldownMultiplier);
+  assert.ok(late.addIntervalMultiplier < middle.addIntervalMultiplier);
+  assert.ok(late.coreWindowMultiplier < middle.coreWindowMultiplier);
+  assert.ok(late.addCount > middle.addCount);
+  assert.ok(late.extraProjectiles > middle.extraProjectiles);
+
+  api.resize();
+  api.resetRun();
+  api.G.enemies.length = 0;
+
+  api.G.wave = 5;
+  api.spawnBoss();
+  const firstBoss = api.G.enemies[0];
+
+  api.G.enemies.length = 0;
+  api.G.wave = 25;
+  api.spawnBoss();
+  const lateBoss = api.G.enemies[0];
+
+  assert.equal(firstBoss.tier, 1);
+  assert.equal(lateBoss.tier, 5);
+  assert.ok(lateBoss.maxHp > firstBoss.maxHp);
+  assert.notEqual(lateBoss.variantId, firstBoss.variantId);
+});
+
+test('later boss phases combine stronger pressure with tighter counterfire windows', () => {
+  const { api } = makeHarness();
+  const early = api.bossCombatProfile({ tier: 5, phase: 1 });
+  const final = api.bossCombatProfile({ tier: 5, phase: 4 });
+
+  assert.ok(final.damageMultiplier > early.damageMultiplier);
+  assert.ok(final.damageTakenMultiplier < early.damageTakenMultiplier);
+  assert.ok(final.cooldown < early.cooldown);
+  assert.ok(final.coreWindow < early.coreWindow);
+});
+
+test('boss impact pressure is applied as a capped heavy hit', () => {
+  const { api } = makeHarness();
+
+  api.resize();
+  api.resetRun();
+  api.G.player.inv = 0;
+  api.G.player.x = 400;
+  api.G.player.y = 400;
+  api.G.lives = 3;
+  api.G.ebullets.push({
+    x: api.G.player.x,
+    y: api.G.player.y,
+    vx: 0,
+    vy: 0,
+    r: 7,
+    damage: 1.8
+  });
+
+  api.updateWorld(0);
+
+  assert.equal(api.G.lives, 1);
 });
 
 test('boss phase shifts are protected and attacks are telegraphed before firing', () => {
