@@ -26,12 +26,179 @@ const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const rand = (a, b) => a + Math.random() * (b - a);
 const TAU = Math.PI * 2;
 
+const DAILY_KEY = 'ionstorm.daily';
+
+const DAILY_MODIFIERS = [
+  {
+    id: 'redline',
+    name: 'REDLINE',
+    description: 'Hostile formations arrive faster. Score multiplier +15%.',
+    scoreMultiplier: 1.15,
+    countMultiplier: 1.08,
+    speedMultiplier: 1.1,
+    spawnGapMultiplier: 0.9,
+    fireMultiplier: 0.94
+  },
+  {
+    id: 'ironVeil',
+    name: 'IRON VEIL',
+    description: 'Enemy hulls are reinforced. Survive the armor for +20% score.',
+    scoreMultiplier: 1.2,
+    hpMultiplier: 1.16,
+    bossHpMultiplier: 1.2,
+    bossDamageTakenMultiplier: 0.9
+  },
+  {
+    id: 'surgeCircuit',
+    name: 'SURGE CIRCUIT',
+    description: 'The Veil feeds your overdrive. SURGE gain is amplified.',
+    scoreMultiplier: 1.1,
+    speedMultiplier: 1.04,
+    spawnGapMultiplier: 0.96,
+    surgeMultiplier: 1.3,
+    dropBonus: 0.05
+  },
+  {
+    id: 'salvageRush',
+    name: 'SALVAGE RUSH',
+    description: 'Recoverable tech floods the lanes. Pickups are more frequent.',
+    scoreMultiplier: 1.08,
+    countMultiplier: 0.96,
+    spawnGapMultiplier: 1.04,
+    dropBonus: 0.3,
+    scrapMultiplier: 1.25
+  }
+];
+
+function utcDayKey(date = new Date()) {
+  const value = date instanceof Date ? date : new Date(date);
+
+  if (Number.isNaN(value.getTime())) return '1970-01-01';
+
+  return [
+    value.getUTCFullYear(),
+    String(value.getUTCMonth() + 1).padStart(2, '0'),
+    String(value.getUTCDate()).padStart(2, '0')
+  ].join('-');
+}
+
+function hashSeed(value) {
+  let hash = 2166136261;
+
+  for (const char of String(value)) {
+    hash ^= char.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return (hash >>> 0) || 1;
+}
+
+function dailyChallengeForDate(date = utcDayKey()) {
+  const dateKey = typeof date === 'string' ? date : utcDayKey(date);
+  const seed = hashSeed('IONSTORM::DAILY::' + dateKey);
+  const modifier = DAILY_MODIFIERS[
+    hashSeed('IONSTORM::MODIFIER::' + dateKey) % DAILY_MODIFIERS.length
+  ];
+
+  return {
+    date: dateKey,
+    seed,
+    code: dateKey.replace(/-/g, ''),
+    modifier: { ...modifier }
+  };
+}
+
+function dailyModifier() {
+  return typeof G !== 'undefined' && G.challenge?.mode === 'daily'
+    ? G.challenge.modifier
+    : null;
+}
+
+function runRandom() {
+  if (typeof G !== 'undefined' && G.challenge?.mode === 'daily') {
+    let state = G.challenge.rngState >>> 0;
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    G.challenge.rngState = state;
+    return state / 4294967296;
+  }
+
+  return Math.random();
+}
+
+const gameRand = (a, b) => a + runRandom() * (b - a);
+
 const boundedInt = (value, min = 0, max = Number.MAX_SAFE_INTEGER) => {
   const n = Number(value);
   return Number.isFinite(n) ? clamp(Math.floor(n), min, max) : min;
 };
 
 const pad7 = n => String(Math.floor(n)).padStart(7, '0');
+
+let DAILY_HISTORY = { bestByDate: {} };
+
+try {
+  const storedDaily = JSON.parse(localStorage.getItem(DAILY_KEY) || '{}');
+  const bestByDate = storedDaily && typeof storedDaily.bestByDate === 'object'
+    ? storedDaily.bestByDate
+    : {};
+
+  DAILY_HISTORY.bestByDate = Object.fromEntries(
+    Object.entries(bestByDate)
+      .filter(([date]) => /^\d{4}-\d{2}-\d{2}$/.test(date))
+      .map(([date, score]) => [date, boundedInt(score)])
+  );
+} catch {
+  /* Storage may be unavailable. Use an empty local daily archive. */
+}
+
+function saveDailyHistory() {
+  try {
+    localStorage.setItem(DAILY_KEY, JSON.stringify(DAILY_HISTORY));
+  } catch {
+    /* Ignore storage failures. */
+  }
+}
+
+function dailyBestFor(date = utcDayKey()) {
+  return boundedInt(DAILY_HISTORY.bestByDate[date]);
+}
+
+function saveDailyScore(challenge, score) {
+  if (!challenge || challenge.mode === 'standard') return 0;
+
+  const date = challenge.date || utcDayKey();
+  const next = Math.max(dailyBestFor(date), boundedInt(score));
+
+  DAILY_HISTORY.bestByDate[date] = next;
+  saveDailyHistory();
+
+  return next;
+}
+
+function dailyScoreMultiplier() {
+  return dailyModifier()?.scoreMultiplier || 1;
+}
+
+function dailyScrapMultiplier() {
+  return dailyModifier()?.scrapMultiplier || 1;
+}
+
+function runAccuracy() {
+  if (!G.shotsFired) return 0;
+  return Math.round(G.shotsHit / G.shotsFired * 100);
+}
+
+function runSystemsCount() {
+  return Object.values(G.runUpgrades || {}).reduce((sum, count) => sum + count, 0);
+}
+
+function formatRunTime(seconds) {
+  const total = Math.max(0, Math.floor(Number(seconds) || 0));
+  const minutes = Math.floor(total / 60);
+  const secs = total % 60;
+
+  return String(minutes).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+}
 
 /* =========================================================================
    Storage keys
@@ -433,6 +600,7 @@ function bossEncounterProfile(tier = 1) {
   const encounter = Math.max(1, Math.floor(Number(tier) || 1));
   const step = encounter - 1;
   const variant = bossVariantForTier(encounter);
+  const daily = dailyModifier();
 
   return {
     tier: encounter,
@@ -441,11 +609,15 @@ function bossEncounterProfile(tier = 1) {
     style: variant.style,
 
     /* Hull growth is deliberately nonlinear after the second encounter. */
-    hpMultiplier: 1 + step * 0.3 + Math.min(0.32, step * step * 0.012),
+    hpMultiplier: (1 + step * 0.3 + Math.min(0.32, step * step * 0.012)) *
+      (daily?.bossHpMultiplier || 1),
     damageMultiplier: 1 + Math.min(0.8, step * 0.12),
-    damageTakenMultiplier: Math.max(0.84, 1 - step * 0.04),
-    cooldownMultiplier: Math.max(0.67, 1 - step * 0.055),
-    telegraphMultiplier: Math.max(0.74, 1 - step * 0.03),
+    damageTakenMultiplier: Math.max(0.84, 1 - step * 0.04) *
+      (daily?.bossDamageTakenMultiplier || 1),
+    cooldownMultiplier: Math.max(0.67, 1 - step * 0.055) *
+      (daily?.bossCooldownMultiplier || 1),
+    telegraphMultiplier: Math.max(0.74, 1 - step * 0.03) *
+      (daily?.bossTelegraphMultiplier || 1),
     projectileSpeedMultiplier: 1 + Math.min(0.42, step * 0.06),
     moveMultiplier: 1 + Math.min(0.4, step * 0.06),
     addIntervalMultiplier: Math.max(0.58, 1 - step * 0.08),
@@ -662,6 +834,17 @@ const G = {
   score: 0,
   hi: 0,
   runStartHi: 0,
+  runMode: 'standard',
+  challenge: null,
+  lastRun: null,
+  runTime: 0,
+  shotsFired: 0,
+  shotsHit: 0,
+  damageDealt: 0,
+  damageTaken: 0,
+  eliteKills: 0,
+  bossesDefeated: 0,
+  systemsInstalled: 0,
 
   lives: 3,
   maxLives: 3,
@@ -3971,6 +4154,12 @@ function updateTitleMeta() {
   setTxt($('tHi'), pad7(G.hi));
   setTxt($('tScrap'), String(META.scrap));
   setTxt($('tShip'), currentShip().name);
+
+  const daily = dailyChallengeForDate();
+  setTxt($('dailyDate'), daily.date + ' UTC');
+  setTxt($('dailyName'), daily.modifier.name);
+  setTxt($('dailyDesc'), daily.modifier.description);
+  setTxt($('dailyBest'), dailyBestFor(daily.date) ? pad7(dailyBestFor(daily.date)) : '—');
 }
 
 /* =========================================================================
@@ -3996,7 +4185,7 @@ function pickRunUpgradeChoices() {
   const choices = [];
 
   while (choices.length < Math.min(3, ids.length)) {
-    const id = ids[(Math.random() * ids.length) | 0];
+    const id = ids[(runRandom() * ids.length) | 0];
 
     if (!choices.includes(id)) {
       choices.push(id);
@@ -4012,6 +4201,7 @@ function applyRunUpgrade(id) {
   if (!upgrade) return false;
 
   G.runUpgrades[id] = (G.runUpgrades[id] || 0) + 1;
+  G.systemsInstalled++;
   upgrade.apply();
   toast('SYSTEM INSTALLED — ' + upgrade.name, 'gold');
 
@@ -4340,9 +4530,19 @@ function renderHangar() {
    Run setup
    ========================================================================= */
 
-function resetRun() {
+function resetRun(runMode = G.runMode) {
   const ship = currentShip();
   const up = META.upgrades;
+  const selectedMode = runMode === 'daily' ? 'daily' : 'standard';
+  const dailySeed = selectedMode === 'daily' ? dailyChallengeForDate() : null;
+  const challenge = dailySeed
+    ? {
+      ...dailySeed,
+      mode: 'daily',
+      rngState: dailySeed.seed,
+      bestScore: dailyBestFor()
+    }
+    : null;
 
   G.maxLives = ship.lives + up.hull;
   G.surgeMult = 1 + 0.25 * up.surge;
@@ -4377,6 +4577,17 @@ function resetRun() {
   Object.assign(G, {
     score: 0,
     runStartHi: G.hi,
+    runMode: selectedMode,
+    challenge,
+    lastRun: null,
+    runTime: 0,
+    shotsFired: 0,
+    shotsHit: 0,
+    damageDealt: 0,
+    damageTaken: 0,
+    eliteKills: 0,
+    bossesDefeated: 0,
+    systemsInstalled: 0,
     lives: G.maxLives,
     wave: 0,
     eventId: 'standard',
@@ -4531,8 +4742,8 @@ function startWave(n) {
 function waveProfile(n = G.wave) {
   const wave = Math.max(1, Math.floor(n));
   const progress = wave - 1;
-
-  return {
+  const daily = dailyModifier();
+  const base = {
     count: Math.min(10 + wave * 3 + Math.floor(wave / 5), 58),
     speed: 1 + Math.min(0.5, progress * 0.03),
     spawnGap: Math.max(0.3, 1.15 - wave * 0.055),
@@ -4541,6 +4752,21 @@ function waveProfile(n = G.wave) {
     asteroidHp: 8 + Math.floor(wave * 0.8),
     tankHp: 7 + Math.floor(wave * 0.65),
     fireFloor: Math.max(0.82, 1.2 - progress * 0.025)
+  };
+
+  if (!daily) return base;
+
+  const hpMultiplier = daily.hpMultiplier || 1;
+
+  return {
+    count: Math.max(1, Math.round(base.count * (daily.countMultiplier || 1))),
+    speed: base.speed * (daily.speedMultiplier || 1),
+    spawnGap: Math.max(0.24, base.spawnGap * (daily.spawnGapMultiplier || 1)),
+    droneHp: Math.max(1, Math.ceil(base.droneHp * hpMultiplier)),
+    strikerHp: Math.max(1, Math.ceil(base.strikerHp * hpMultiplier)),
+    asteroidHp: Math.max(1, Math.ceil(base.asteroidHp * hpMultiplier)),
+    tankHp: Math.max(1, Math.ceil(base.tankHp * hpMultiplier)),
+    fireFloor: Math.max(0.7, base.fireFloor * (daily.fireMultiplier || 1))
   };
 }
 
@@ -4569,7 +4795,7 @@ function eliteChance(wave = G.wave, eventId = G.eventId) {
 }
 
 function pickType() {
-  const r = Math.random();
+  const r = runRandom();
   const event = activeWaveEvent();
 
   const ast = Math.min(
@@ -4587,7 +4813,7 @@ function pickType() {
 }
 
 function pickEliteKind() {
-  const r = Math.random();
+  const r = runRandom();
 
   return r < 0.42 ? 'aegis' : r < 0.76 ? 'berserker' : 'splitter';
 }
@@ -4633,33 +4859,33 @@ function spawnEnemy() {
 
   const e = {
     type,
-    x: rand(50, G.w - 50),
+    x: gameRand(50, G.w - 50),
     y: -60,
-    t: rand(0, 6),
+    t: gameRand(0, 6),
     flash: 0,
-    fireT: rand(1.2, 2.6)
+    fireT: gameRand(1.2, 2.6)
   };
 
   if (type === 'drone') {
     e.hp = threat.droneHp;
     e.r = 24;
     e.baseX = e.x;
-    e.amp = rand(40, 120);
-    e.freq = rand(1.2, 2.2);
-    e.vy = (rand(70, 100) + G.wave * 3) * threat.speed;
+    e.amp = gameRand(40, 120);
+    e.freq = gameRand(1.2, 2.2);
+    e.vy = (gameRand(70, 100) + G.wave * 3) * threat.speed;
     e.val = 100;
   } else if (type === 'striker') {
     e.hp = threat.strikerHp;
     e.r = 22;
-    e.vy = (rand(120, 160) + G.wave * 4) * threat.speed;
+    e.vy = (gameRand(120, 160) + G.wave * 4) * threat.speed;
     e.val = 250;
   } else if (type === 'asteroid') {
     e.hp = threat.asteroidHp;
-    e.r = rand(26, 44);
-    e.vy = (rand(45, 85) + G.wave * 2) * threat.speed;
-    e.vx = rand(-35, 35);
-    e.rot = rand(0, TAU);
-    e.vr = rand(-1.1, 1.1);
+    e.r = gameRand(26, 44);
+    e.vy = (gameRand(45, 85) + G.wave * 2) * threat.speed;
+    e.vx = gameRand(-35, 35);
+    e.rot = gameRand(0, TAU);
+    e.vr = gameRand(-1.1, 1.1);
     e.val = 150;
     e.fireT = 9999;
   } else {
@@ -4674,7 +4900,7 @@ function spawnEnemy() {
     type !== 'asteroid' &&
     !G.eventEliteSpawned;
 
-  if (type !== 'asteroid' && (guaranteedElite || Math.random() < eliteChance())) {
+  if (type !== 'asteroid' && (guaranteedElite || runRandom() < eliteChance())) {
     applyEliteModifier(e);
 
     if (event?.id === 'eliteHunt') {
@@ -4747,7 +4973,9 @@ function damageBoss(e, amount) {
     (e.coreOpen ? profile.coreMultiplier : 0.72) *
     profile.damageTakenMultiplier;
 
-  e.hp -= raw * multiplier;
+  const dealt = raw * multiplier;
+  G.damageDealt += dealt;
+  e.hp -= dealt;
   return e.hp <= 0;
 }
 
@@ -4790,12 +5018,13 @@ function damageEnemy(e, amount) {
     }
   }
 
+  G.damageDealt += remaining;
   e.hp -= remaining;
   return e.hp <= 0;
 }
 
 function projectileDamage(base) {
-  return G.critChance > 0 && Math.random() < G.critChance
+  return G.critChance > 0 && runRandom() < G.critChance
     ? base * 2
     : base;
 }
@@ -4899,7 +5128,7 @@ function bossSpiral(e, arms = 3) {
 function bossWall(e) {
   const combat = bossCombatProfile(e);
   const n = 11 + Math.min(3, combat.extraProjectiles);
-  const gap = (Math.random() * n) | 0;
+  const gap = (runRandom() * n) | 0;
   const y = e.y + e.r * 0.45;
   const spd = Math.min(
     (210 + G.wave * 6) * combat.projectileSpeedMultiplier,
@@ -4911,7 +5140,7 @@ function bossWall(e) {
 
     const x = e.x + (i - (n - 1) / 2) * 48;
 
-    eb(x, y, rand(-14, 14), spd, 7, combat.damageMultiplier);
+    eb(x, y, gameRand(-14, 14), spd, 7, combat.damageMultiplier);
   }
 }
 
@@ -4924,36 +5153,36 @@ function spawnBossAdd(e, count = 1) {
   for (let k = 0; k < count; k++) {
     if (G.enemies.length > 56) return;
 
-    const type = Math.random() < Math.max(0.58, 0.72 - (e.tier || 1) * 0.018)
+    const type = runRandom() < Math.max(0.58, 0.72 - (e.tier || 1) * 0.018)
       ? 'drone'
       : 'striker';
     const threat = waveProfile();
 
     const a = {
       type,
-      x: clamp(e.x + rand(-260, 260), 50, G.w - 50),
+      x: clamp(e.x + gameRand(-260, 260), 50, G.w - 50),
       y: -60,
-      t: rand(0, 6),
+      t: gameRand(0, 6),
       flash: 0,
-      fireT: rand(1.2, 2.4)
+      fireT: gameRand(1.2, 2.4)
     };
 
     if (type === 'drone') {
       a.hp = threat.droneHp;
       a.r = 24;
       a.baseX = a.x;
-      a.amp = rand(36, 100);
-      a.freq = rand(1.2, 2.2);
-      a.vy = (rand(82, 116) + G.wave * 3) * threat.speed;
+      a.amp = gameRand(36, 100);
+      a.freq = gameRand(1.2, 2.2);
+      a.vy = (gameRand(82, 116) + G.wave * 3) * threat.speed;
       a.val = 100;
     } else {
       a.hp = threat.strikerHp;
       a.r = 22;
-      a.vy = (rand(132, 172) + G.wave * 4) * threat.speed;
+      a.vy = (gameRand(132, 172) + G.wave * 4) * threat.speed;
       a.val = 250;
     }
 
-    if (Math.random() < eliteChanceForAdds) {
+    if (runRandom() < eliteChanceForAdds) {
       applyEliteModifier(a);
     }
 
@@ -5015,7 +5244,7 @@ function spawnBoss() {
     type: 'boss',
     x: G.w / 2,
     y: -240,
-    t: rand(0, 6),
+    t: gameRand(0, 6),
     flash: 0,
     attackT: 1.2,
     telegraphT: 0,
@@ -5223,10 +5452,10 @@ function bossDeath(e) {
 
   for (let k = 0; k < 3; k++) {
     G.powerups.push({
-      x: e.x + rand(-100, 100),
-      y: e.y + rand(-35, 35),
-      type: types[(Math.random() * types.length) | 0],
-      t: rand(0, 2),
+      x: e.x + gameRand(-100, 100),
+      y: e.y + gameRand(-35, 35),
+      type: types[(runRandom() * types.length) | 0],
+      t: gameRand(0, 2),
       spark: 0
     });
   }
@@ -5243,21 +5472,21 @@ function spawnSplitterDrones(e) {
   const count = Math.min(e.splitCount || 2, room);
 
   for (let k = 0; k < count; k++) {
-    const x = clamp(e.x + rand(-28, 28), 24, G.w - 24);
+    const x = clamp(e.x + gameRand(-28, 28), 24, G.w - 24);
 
     G.enemies.push({
       type: 'drone',
       x,
       y: e.y,
-      t: rand(0, 6),
+      t: gameRand(0, 6),
       flash: 0,
-      fireT: rand(1.8, 3.2),
+      fireT: gameRand(1.8, 3.2),
       hp: Math.max(1, Math.ceil(G.wave / 12)),
       r: 14,
       baseX: x,
-      amp: rand(18, 52),
-      freq: rand(1.8, 2.8),
-      vy: (rand(100, 135) + G.wave * 3) * waveProfile().speed,
+      amp: gameRand(18, 52),
+      freq: gameRand(1.8, 2.8),
+      vy: (gameRand(100, 135) + G.wave * 3) * waveProfile().speed,
       val: Math.max(30, Math.floor(e.val * 0.16)),
       mini: true
     });
@@ -5291,7 +5520,9 @@ function killEnemy(e, i) {
   G.maxCombo = Math.max(G.maxCombo, G.combo);
   G.mult = Math.min(9, 1 + Math.floor(G.combo / 6));
 
-  G.score += e.val * G.mult;
+  G.score += Math.round(e.val * G.mult * dailyScoreMultiplier());
+
+  if (e.elite) G.eliteKills++;
 
   if (G.score > G.hi) {
     G.hi = G.score;
@@ -5302,6 +5533,7 @@ function killEnemy(e, i) {
   if (e.type === 'asteroid') unlockAch('asteroid');
 
   if (e.type === 'boss') {
+    G.bossesDefeated++;
     G.surge = Math.min(100, G.surge + 60 * G.surgeMult);
     bossDeath(e);
     G.dropDry = 0;
@@ -5316,7 +5548,8 @@ function killEnemy(e, i) {
 
   G.surge = Math.min(
     100,
-    G.surge + surgeFill * G.surgeMult * (e.elite ? 1.25 : 1)
+    G.surge + surgeFill * G.surgeMult * (e.elite ? 1.25 : 1) *
+      (dailyModifier()?.surgeMultiplier || 1)
   );
 
   if (e.type === 'tank') {
@@ -5347,11 +5580,12 @@ function killEnemy(e, i) {
     0.11;
   const dropChance = Math.min(
     0.9,
-    chance + (e.elite ? 0.12 : 0) + (event?.dropBonus || 0)
+    chance + (e.elite ? 0.12 : 0) + (event?.dropBonus || 0) +
+      (dailyModifier()?.dropBonus || 0)
   );
   const dropLimit = event?.salvageLimit || 14;
 
-  if (Math.random() < dropChance || G.dropDry >= dropLimit) {
+  if (runRandom() < dropChance || G.dropDry >= dropLimit) {
     G.dropDry = 0;
 
     const types = ['triple', 'rapid', 'shield', 'seeker'];
@@ -5359,7 +5593,7 @@ function killEnemy(e, i) {
     G.powerups.push({
       x: e.x,
       y: e.y,
-      type: types[(Math.random() * types.length) | 0],
+      type: types[(runRandom() * types.length) | 0],
       t: 0,
       spark: 0
     });
@@ -5381,6 +5615,8 @@ function hitPlayer(damage = 1) {
   const hullDamage = clamp(Math.round(Number(damage) || 1), 1, 2);
 
   if (p.inv > 0 || !p.alive) return;
+
+  G.damageTaken += hullDamage;
 
   if (p.shield > 0) {
     p.shield--;
@@ -5457,9 +5693,37 @@ function gameOver() {
   G.state = 'over';
   G.overReady = false;
 
-  const earned = Math.floor(G.score / 100) + G.kills * 5 + G.wave * 50;
+  const earned = Math.floor(
+    (Math.floor(G.score / 100) + G.kills * 5 + G.wave * 50) *
+    dailyScrapMultiplier()
+  );
 
   addScrap(earned);
+
+  const isDaily = G.runMode === 'daily' && G.challenge;
+  const dailyBest = isDaily ? saveDailyScore(G.challenge, G.score) : 0;
+  const dailyDate = isDaily ? G.challenge.date : '';
+
+  G.lastRun = {
+    mode: G.runMode,
+    challengeDate: dailyDate,
+    challengeCode: isDaily ? G.challenge.code : '',
+    score: G.score,
+    wave: G.wave,
+    kills: G.kills,
+    maxCombo: G.maxCombo,
+    time: G.runTime,
+    accuracy: runAccuracy(),
+    damage: Math.round(G.damageDealt),
+    damageTaken: G.damageTaken,
+    elites: G.eliteKills,
+    bosses: G.bossesDefeated,
+    systems: G.systemsInstalled,
+    shotsFired: G.shotsFired,
+    shotsHit: G.shotsHit,
+    scrap: earned,
+    dailyBest
+  };
 
   try {
     localStorage.setItem(HI_KEY, String(G.hi));
@@ -5474,6 +5738,22 @@ function gameOver() {
   $('sCombo').textContent = '×' + G.maxCombo;
   $('sScrap').textContent = String(earned);
   $('sTotalScrap').textContent = String(META.scrap);
+
+  setTxt($('sTime'), formatRunTime(G.runTime));
+  setTxt($('sAccuracy'), runAccuracy() + '%');
+  setTxt($('sDamage'), String(Math.round(G.damageDealt)));
+  setTxt($('sElites'), String(G.eliteKills));
+  setTxt($('sBosses'), String(G.bossesDefeated));
+  setTxt($('sSystems'), String(G.systemsInstalled));
+
+  const dailyResult = $('dailyResult');
+
+  if (dailyResult) {
+    dailyResult.classList.toggle('hidden', !isDaily);
+  }
+
+  setTxt($('dailyResultDate'), isDaily ? 'DAILY // ' + dailyDate : '');
+  setTxt($('sDailyBest'), isDaily ? pad7(dailyBest) : '—');
 
   const isNewRecord = G.score > G.runStartHi;
   $('newRec').classList.toggle('hidden', !isNewRecord);
@@ -5492,6 +5772,53 @@ function gameOver() {
     G.overReady = true;
     if (relaunchBtn) relaunchBtn.disabled = false;
   }, 600);
+}
+
+function shareRunScore() {
+  const run = G.lastRun || {
+    mode: G.runMode,
+    challengeDate: G.challenge?.date || '',
+    score: G.score,
+    wave: G.wave,
+    accuracy: runAccuracy()
+  };
+  const modeLabel = run.mode === 'daily'
+    ? 'DAILY ' + run.challengeDate
+    : 'STANDARD RUN';
+  const text = [
+    'IONSTORM // ' + modeLabel,
+    'SCORE ' + pad7(run.score) + ' · WAVE ' + String(run.wave).padStart(2, '0'),
+    'ACCURACY ' + run.accuracy + '% · ' + formatRunTime(run.time || G.runTime),
+    'Defend the Veil: https://ionstorm.vercel.app'
+  ].join('\n');
+
+  if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+    navigator.share({
+      title: 'IONSTORM ' + modeLabel,
+      text
+    }).then(() => {
+      toast('SCORE SHARED', 'gold');
+    }).catch(error => {
+      if (error && error.name !== 'AbortError') toast('SHARE CANCELLED');
+    });
+    return true;
+  }
+
+  if (
+    typeof navigator !== 'undefined' &&
+    navigator.clipboard &&
+    typeof navigator.clipboard.writeText === 'function'
+  ) {
+    navigator.clipboard.writeText(text).then(() => {
+      toast('SCORE COPIED', 'gold');
+    }).catch(() => {
+      toast('SHARE UNAVAILABLE', 'red');
+    });
+    return true;
+  }
+
+  toast('SHARE UNAVAILABLE', 'red');
+  return false;
 }
 
 /* =========================================================================
@@ -5569,6 +5896,8 @@ function updatePlayer(dt) {
       });
     }
 
+    G.shotsFired += dirs.length;
+
     pushP(
       p.x,
       p.y - 32,
@@ -5644,6 +5973,7 @@ function updatePlayer(dt) {
     if (p.mCool <= 0 && G.missiles.length < 24) {
       p.mCool = 0.45;
       p.mSide *= -1;
+      G.shotsFired++;
 
       const s = p.mSide;
 
@@ -5683,7 +6013,7 @@ function updateWaves(dt) {
       G.waveQ--;
       const event = activeWaveEvent();
       const gapMultiplier = event?.spawnGapMultiplier || 1;
-      G.spawnT = waveProfile().spawnGap * gapMultiplier * rand(0.72, 1.18);
+      G.spawnT = waveProfile().spawnGap * gapMultiplier * gameRand(0.72, 1.18);
     }
 
     if (G.waveQ <= 0) {
@@ -5771,6 +6101,7 @@ function updateWorld(dt) {
           enemyIsTargetable(e) &&
           Math.hypot(e.x - m.x, e.y - m.y) < e.r + 10
         ) {
+          G.shotsHit++;
           const destroyed = damageEnemy(e, projectileDamage(3));
           e.flash = 1;
           dead = true;
@@ -5897,7 +6228,7 @@ function updateWorld(dt) {
           e.fireT = Math.max(
             waveProfile().fireFloor * fireMultiplier,
             (base - G.wave * 0.06) * fireMultiplier
-          ) * rand(0.75, 1.25);
+          ) * gameRand(0.75, 1.25);
         }
       }
 
@@ -6026,6 +6357,7 @@ function updateWorld(dt) {
         ) {
           G.bullets.splice(i, 1);
           hit = true;
+          G.shotsHit++;
 
           const destroyed = damageEnemy(e, projectileDamage(1));
           e.flash = 1;
@@ -6210,6 +6542,10 @@ function update(rdt) {
 
   if (!frozen) {
     G.time += dt;
+
+    if (G.state === 'playing') {
+      G.runTime += dt;
+    }
 
     G.shake *= Math.exp(-6 * rdt);
 
@@ -6865,6 +7201,14 @@ function hud(rdt) {
   setTxt($('hWave'), String(Math.max(G.wave, 1)).padStart(2, '0'));
   setTxt($('hMult'), '×' + G.mult);
 
+  const dailyActive = G.runMode === 'daily' && !!G.challenge;
+  const modeEl = $('hMode');
+
+  if (modeEl) {
+    modeEl.classList.toggle('hidden', !dailyActive);
+    setTxt(modeEl, dailyActive ? 'DAILY' : '');
+  }
+
   const showLevel = inGame && G.wave > 0;
   setChromeVisible('levelHud', showLevel);
   setTxt($('hLevel'), String(G.runLevel).padStart(2, '0'));
@@ -7106,7 +7450,7 @@ addEventListener('keydown', e => {
     }
 
     if (k === 'enter' || k === ' ') {
-      resetRun();
+      resetRun('standard');
     }
 
     return;
@@ -7166,7 +7510,7 @@ cv.addEventListener('pointerdown', e => {
   pointer.lastMove = G.time;
 
   if (G.state === 'title') {
-    resetRun();
+    resetRun('standard');
   } else if (G.state === 'over' && G.overReady) {
     resetRun();
   } else if (G.state === 'upgrade') {
@@ -7242,7 +7586,15 @@ $('startPrompt').addEventListener('click', () => {
   AU.ensure();
 
   if (G.state === 'title') {
-    resetRun();
+    resetRun('standard');
+  }
+});
+
+$('dailyPrompt').addEventListener('click', () => {
+  AU.ensure();
+
+  if (G.state === 'title') {
+    resetRun('daily');
   }
 });
 
@@ -7260,6 +7612,11 @@ $('hangarBackBtn').addEventListener('click', () => {
 $('hangarLaunchBtn').addEventListener('click', () => {
   AU.ensure();
   resetRun();
+});
+
+$('shareScoreBtn').addEventListener('click', () => {
+  AU.ensure();
+  shareRunScore();
 });
 
 for (const [key, [buttonId]] of Object.entries(SETTING_CONTROLS)) {

@@ -20,6 +20,8 @@ It uses WebGPU when available and falls back to WebGL2 automatically, so the sam
 - Escalating enemy waves, asteroids, power-ups, and tiered four-phase Dreadnought bosses
 - Elite enemy modifiers, splitter reinforcements, and rotating event waves
 - In-run XP progression with three-choice temporary upgrade drafts
+- UTC-seeded daily challenges with rotating modifiers, local best scores, and shareable results
+- Detailed post-run metrics including survival time, accuracy, damage, elites, bosses, and systems
 - SURGE overdrive, combo multipliers, achievements, and score chasing
 - Three ships with distinct speed, hull, shield, and firing profiles
 - Persistent scrap, upgrades, pilot profile, local records, and statistics
@@ -43,6 +45,15 @@ It uses WebGPU when available and falls back to WebGL2 automatically, so the sam
 During a deployment, destroyed enemies grant run XP. Each level-up pauses the
 mission and offers three different temporary systems; choose with `1`–`3` on
 desktop or tap a card on mobile. These upgrades reset when the run ends.
+
+The title screen also includes one daily challenge shared by UTC date. Every
+daily run uses the same deterministic combat seed and a rotating modifier such
+as REDLINE, IRON VEIL, SURGE CIRCUIT, or SALVAGE RUSH. Daily best scores are
+stored locally, and the end screen can share or copy a compact result card.
+
+Every run ends with a tactical breakdown: survival time, firing accuracy,
+damage dealt, elite contacts destroyed, Dreadnoughts defeated, and temporary
+systems installed.
 
 From wave 3 onward, elite contacts can appear with Aegis shields, Berserker
 rage drives, or Splitter cores. Every few waves also introduces a tactical event
@@ -119,10 +130,8 @@ For contribution expectations, browser testing guidance, and the project boundar
 
 The current records board is intentionally local to the browser; it is not a global leaderboard and is not tamper-proof. There is no account system, matchmaking, or server-side progression.
 
-The next gameplay milestones are:
-
-1. Daily seeded challenges with shareable scores
-2. Installable PWA support and gamepad input
+The next gameplay milestone is installable PWA support with offline caching;
+gamepad input will follow as the next control-system pass.
 
 ## License
 

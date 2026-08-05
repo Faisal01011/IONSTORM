@@ -343,6 +343,21 @@ button.cham:disabled {
   text-align: center;
 }
 
+.hudMode {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 2px 4px;
+  color: var(--amber);
+  border: 1px solid rgba(255, 180, 84, .45);
+  font-size: .42rem;
+  letter-spacing: .12em;
+  vertical-align: 2px;
+}
+
+.hudMode.hidden {
+  display: none;
+}
+
 .hudright {
   display: flex;
   justify-content: flex-end;
@@ -1337,6 +1352,67 @@ button.start:focus-visible {
   padding-inline: .7em;
 }
 
+.dailyAction {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--amber) !important;
+  background: rgba(50, 32, 18, .82) !important;
+  border-color: rgba(255, 180, 84, .52) !important;
+}
+
+.dailyBrief {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 11px 13px;
+  background:
+    linear-gradient(105deg, rgba(255, 180, 84, .09), transparent 62%),
+    rgba(2, 8, 15, .48);
+  border-color: rgba(255, 180, 84, .2);
+}
+
+.dailyBriefTop,
+.dailyBriefBest {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--amber);
+  font-family: 'Orbitron';
+  font-size: .48rem;
+  font-weight: 700;
+  letter-spacing: .16em;
+}
+
+.dailyBriefTop span:last-child,
+.dailyBriefBest span {
+  color: var(--muted);
+  font-size: .42rem;
+}
+
+.dailyBrief strong {
+  color: var(--ink);
+  font-family: 'Orbitron';
+  font-size: .78rem;
+  letter-spacing: .12em;
+}
+
+.dailyBrief p {
+  color: var(--dim);
+  font-size: .76rem;
+  line-height: 1.3;
+  letter-spacing: .035em;
+}
+
+.dailyBriefBest b {
+  color: var(--cyan);
+  font-family: 'Orbitron';
+  font-size: .68rem;
+  letter-spacing: .08em;
+}
+
 .meta {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1627,6 +1703,65 @@ h2.hold {
 
 .resultCard {
   width: min(720px, 100%);
+}
+
+.gameOverActions {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.dailyResult {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  color: var(--amber);
+  background: rgba(50, 32, 18, .5);
+  border: 1px solid rgba(255, 180, 84, .28);
+  font-family: 'Orbitron';
+  font-size: .52rem;
+  letter-spacing: .14em;
+}
+
+.dailyResult b {
+  color: var(--cyan);
+  font-size: .68rem;
+}
+
+.runBreakdown {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.runMetric {
+  min-width: 0;
+  padding: 9px 8px;
+  display: grid;
+  gap: 5px;
+  text-align: center;
+  background: rgba(2, 8, 15, .42);
+  border-color: rgba(95, 220, 255, .12);
+}
+
+.runMetricLabel {
+  color: var(--muted);
+  font-family: 'Orbitron';
+  font-size: .44rem;
+  font-weight: 700;
+  letter-spacing: .16em;
+}
+
+.runMetric b {
+  overflow: hidden;
+  color: var(--cyan);
+  font-family: 'Orbitron';
+  font-size: .78rem;
+  letter-spacing: .08em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .overlayStatus {
@@ -2945,6 +3080,26 @@ button.buy.max {
 
   .stats .val {
     font-size: .86rem;
+  }
+
+  .runBreakdown {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dailyResult {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+    font-size: .46rem;
+  }
+
+  .dailyBrief {
+    margin-top: 8px;
+    padding: 9px 10px;
+  }
+
+  .dailyBrief p {
+    font-size: .7rem;
   }
 
   #newRec {

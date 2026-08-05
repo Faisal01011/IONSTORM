@@ -25,7 +25,7 @@ The WebGPU path uses embedded WGSL for background, sprite, particle, and compute
 
 ## State and persistence
 
-Core state lives in the `G` object in `src/game.js`. It covers the active run, player, enemies, projectiles, pickups, waves, score, combo, boss state, renderer timing, and temporary run progression.
+Core state lives in the `G` object in `src/game.js`. It covers the active run, player, enemies, projectiles, pickups, waves, score, combo, boss state, renderer timing, run metrics, daily challenge state, and temporary run progression.
 
 Enemy kills award run XP. When the current threshold is reached, the simulation
 enters the `upgrade` state and freezes the world while `ovUpgrade` presents
@@ -55,6 +55,20 @@ after an attack. `damageBoss()` keeps the body damageable while shielded, increa
 damage during the exposed window, and makes phase changes fair by temporarily
 ignoring hits and clearing the previous bullet pattern.
 
+Daily mode is selected from the title screen. `dailyChallengeForDate()` derives
+one UTC date key, a deterministic seed, and one rotating modifier from that key.
+Gameplay-affecting randomness uses the challenge's local linear-congruential
+stream, while presentation particles and audio retain their normal visual
+randomness. This makes the combat sequence reproducible for the same daily seed
+without making the renderer visually repetitive. Daily runs keep a local best
+score and expose a share/copy result string; there is intentionally no remote
+leaderboard or account requirement.
+
+The game-over flow records a `lastRun` summary and renders survival time,
+accuracy, damage dealt, elite kills, boss kills, and temporary systems chosen.
+The profile add-on folds those fields into local records and aggregate pilot
+statistics without making the core game depend on the add-on.
+
 Persistent values are intentionally local to the browser:
 
 | Key | Purpose |
@@ -65,6 +79,7 @@ Persistent values are intentionally local to the browser:
 | `ionstorm.profile` | pilot callsign and local profile identity |
 | `ionstorm.board` | the local top-ten records list |
 | `ionstorm.stats` | aggregate pilot statistics |
+| `ionstorm.daily` | local best daily scores keyed by UTC date |
 
 The local records list is not a server leaderboard and is not tamper-proof. No account or backend is required to play.
 
