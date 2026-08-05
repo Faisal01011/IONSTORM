@@ -149,6 +149,8 @@ function makeHarness() {
       SETTINGS,
       SHIPS,
       RUN_UPGRADES,
+      ELITE_TYPES,
+      WAVE_EVENTS,
       AU,
       COMPUTE_WGSL,
       PART_WGSL,
@@ -156,7 +158,15 @@ function makeHarness() {
       resetRun,
       gameOver,
       resize,
+      hud,
+      startWave,
       waveProfile,
+      waveEvent,
+      eliteChance,
+      applyEliteModifier,
+      eliteSpeedScale,
+      damageEnemy,
+      spawnSplitterDrones,
       nextRunLevelXp,
       awardRunXp,
       chooseRunUpgrade,
@@ -224,6 +234,105 @@ test('wave threat continues to rise after the early run', () => {
   assert.ok(late.strikerHp > mid.strikerHp);
   assert.ok(late.fireFloor < early.fireFloor);
   assert.ok(late.count <= 58);
+});
+
+test('special wave events rotate without replacing boss waves', () => {
+  const { api } = makeHarness();
+
+  assert.equal(api.waveEvent(2), null);
+  assert.equal(api.waveEvent(3).id, 'eliteHunt');
+  assert.equal(api.waveEvent(4).id, 'asteroidStorm');
+  assert.equal(api.waveEvent(7).id, 'salvageRun');
+  assert.equal(api.waveEvent(10), null);
+  assert.ok(api.eliteChance(3, 'eliteHunt') > api.eliteChance(3, 'standard'));
+  assert.equal(api.WAVE_EVENTS.asteroidStorm.asteroidBias > 0, true);
+});
+
+test('event HUD follows the active event and hides for standard and boss waves', () => {
+  const { api, elements } = makeHarness();
+
+  api.resize();
+  api.resetRun();
+
+  api.startWave(3);
+  api.hud(0.016);
+
+  assert.equal(elements.get('eventName').textContent, 'ELITE HUNT');
+  assert.equal(elements.get('eventHud').classList.contains('hidden'), false);
+  assert.equal(elements.get('eventHud').classList.contains('eliteEvent'), true);
+
+  api.startWave(5);
+  api.hud(0.016);
+
+  assert.equal(elements.get('eventHud').classList.contains('hidden'), true);
+});
+
+test('elite modifiers add distinct threat and reward behavior', () => {
+  const { api } = makeHarness();
+
+  api.resize();
+  api.resetRun();
+  api.G.wave = 6;
+
+  const aegis = {
+    type: 'drone',
+    x: 300,
+    y: 100,
+    r: 24,
+    hp: 4,
+    vy: 100,
+    val: 100
+  };
+
+  api.applyEliteModifier(aegis, 'aegis');
+
+  assert.equal(aegis.elite, true);
+  assert.equal(aegis.eliteName, api.ELITE_TYPES.aegis.name);
+  assert.ok(aegis.maxHp > 4);
+  assert.ok(aegis.shieldHp > 0);
+
+  const shieldBefore = aegis.shieldHp;
+  api.damageEnemy(aegis, 1);
+  assert.ok(aegis.shieldHp < shieldBefore);
+  assert.equal(aegis.hp, aegis.maxHp);
+
+  const berserker = {
+    type: 'striker',
+    x: 300,
+    y: 100,
+    r: 22,
+    hp: 4,
+    vy: 100,
+    val: 100
+  };
+
+  api.applyEliteModifier(berserker, 'berserker');
+  const calmSpeed = api.eliteSpeedScale(berserker);
+  berserker.hp = 1;
+  const enragedSpeed = api.eliteSpeedScale(berserker);
+
+  assert.ok(enragedSpeed > calmSpeed);
+});
+
+test('splitter elites release smaller targetable drones on destruction', () => {
+  const { api } = makeHarness();
+
+  api.resize();
+  api.resetRun();
+  api.G.wave = 6;
+  api.G.enemies.length = 0;
+
+  api.spawnSplitterDrones({
+    x: 400,
+    y: 180,
+    val: 600,
+    splitCount: 2
+  });
+
+  assert.equal(api.G.enemies.length, 2);
+  assert.ok(api.G.enemies.every(enemy => enemy.mini));
+  assert.ok(api.G.enemies.every(enemy => api.enemyIsTargetable(enemy)));
+  assert.ok(api.G.enemies.every(enemy => enemy.r < 24));
 });
 
 test('enemies cannot be destroyed or targeted before entering the playfield', () => {

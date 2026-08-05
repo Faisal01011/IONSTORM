@@ -90,9 +90,15 @@ test('keyboard navigation cannot accidentally launch or activate menu actions', 
 });
 
 test('hidden overlays and HUD controls use inert focus management', () => {
-  for (const id of ['hud', 'levelHud', 'surge', 'ovHangar', 'ovUpgrade', 'ovPause', 'ovOver', 'ovFatal']) {
+  for (const id of ['hud', 'levelHud', 'eventHud', 'surge', 'ovHangar', 'ovUpgrade', 'ovPause', 'ovOver', 'ovFatal']) {
     assert.match(HTML, new RegExp(`id="${id}"[^>]*\\binert\\b`), `missing inert state: ${id}`);
   }
+
+  assert.match(HTML, /id="eventHud"[^>]*\binert\b/);
+  assert.match(GAME_SOURCE, /function waveEvent\(n = G\.wave\)/);
+  assert.match(GAME_SOURCE, /function applyEliteModifier\(e, kind = pickEliteKind\(\)\)/);
+  assert.match(GAME_SOURCE, /SPLITTER CORE RELEASED/);
+  assert.match(CSS, /#eventHud/);
 
   assert.match(GAME_SOURCE, /el\.inert = !on/);
   assert.doesNotMatch(HTML, /aria-hidden="true"[^>]*>\s*<button/);

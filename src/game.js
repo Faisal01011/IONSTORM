@@ -274,6 +274,65 @@ const RUN_UPGRADES = {
   }
 };
 
+/* Elite contacts and wave events add variety without introducing a second
+   progression system. Elite modifiers are temporary run threats; event waves
+   change the composition or reward profile of one wave, then clear normally. */
+const ELITE_TYPES = {
+  aegis: {
+    name: 'AEGIS',
+    desc: 'ENERGY SHIELD',
+    color: [0.35, 0.95, 1],
+    speed: 0.92
+  },
+
+  berserker: {
+    name: 'BERSERKER',
+    desc: 'RAGE DRIVE',
+    color: [1, 0.45, 0.18],
+    speed: 1.12
+  },
+
+  splitter: {
+    name: 'SPLITTER',
+    desc: 'MULTIPLYING CORE',
+    color: [0.78, 0.48, 1],
+    speed: 1.04
+  }
+};
+
+const WAVE_EVENTS = {
+  eliteHunt: {
+    id: 'eliteHunt',
+    name: 'ELITE HUNT',
+    description: 'COMMAND FRAMES DETECTED · ELITE FREQUENCY INCREASED',
+    tone: 'red',
+    spawnMultiplier: 1,
+    spawnGapMultiplier: 0.92,
+    eliteBoost: 0.3
+  },
+
+  asteroidStorm: {
+    id: 'asteroidStorm',
+    name: 'ASTEROID STORM',
+    description: 'DEBRIS FIELD ENTERED · WATCH THE LANES',
+    tone: 'gold',
+    spawnMultiplier: 1.12,
+    spawnGapMultiplier: 0.82,
+    asteroidBias: 0.34
+  },
+
+  salvageRun: {
+    id: 'salvageRun',
+    name: 'SALVAGE RUN',
+    description: 'RECOVERABLE SIGNALS DETECTED · PICKUPS AMPLIFIED',
+    tone: 'gold',
+    spawnMultiplier: 0.86,
+    spawnGapMultiplier: 1.04,
+    salvageLimit: 5,
+    dropBonus: 0.28
+  }
+};
+
 function getUpgradeLevel(id) {
   return META.upgrades[id] || 0;
 }
@@ -480,6 +539,8 @@ const G = {
   spawnT: 0,
   waitT: 0,
   waveState: 'idle',
+  eventId: 'standard',
+  eventEliteSpawned: false,
 
   overDelay: 0,
   overReady: false,
@@ -3677,7 +3738,7 @@ function setChromeVisible(target, on) {
 }
 
 function setGameControlsInteractive(on) {
-  ['hud', 'levelHud', 'surge'].forEach(id => {
+  ['hud', 'levelHud', 'eventHud', 'surge'].forEach(id => {
     const el = $(id);
     if (el) el.inert = !on;
   });
@@ -3765,12 +3826,14 @@ function nextRunLevelXp(level) {
   return 220 + Math.max(0, Math.floor(level) - 1) * 90;
 }
 
-function runXpValue(type) {
-  return type === 'boss' ? 180 :
+function runXpValue(type, elite = false) {
+  const base = type === 'boss' ? 180 :
     type === 'tank' ? 62 :
     type === 'striker' ? 32 :
     type === 'asteroid' ? 24 :
     18;
+
+  return elite ? Math.round(base * 1.75) : base;
 }
 
 function pickRunUpgradeChoices() {
@@ -3931,7 +3994,7 @@ function openHangar() {
   show($('ovUpgrade'), false);
   show($('ovHangar'), true);
 
-  ['hud', 'levelHud', 'combo', 'chips', 'surge', 'boss'].forEach(id => {
+  ['hud', 'levelHud', 'eventHud', 'combo', 'chips', 'surge', 'boss'].forEach(id => {
     setChromeVisible(id, false);
   });
 
@@ -4161,6 +4224,8 @@ function resetRun() {
     runStartHi: G.hi,
     lives: G.maxLives,
     wave: 0,
+    eventId: 'standard',
+    eventEliteSpawned: false,
     kills: 0,
     dropDry: 0,
 
@@ -4242,9 +4307,11 @@ function resetRun() {
   show($('ovUpgrade'), false);
   show($('ovHangar'), false);
 
-  ['hud', 'levelHud', 'combo', 'chips', 'surge'].forEach(id => {
+  ['hud', 'levelHud', 'eventHud', 'combo', 'chips', 'surge'].forEach(id => {
     setChromeVisible(id, true);
   });
+
+  setChromeVisible('eventHud', false);
 
   setChromeVisible('boss', false);
   setGameControlsInteractive(true);
@@ -4265,6 +4332,8 @@ function resetRun() {
 
 function startWave(n) {
   G.wave = n;
+  G.eventId = 'standard';
+  G.eventEliteSpawned = false;
 
   if (n >= 10) {
     unlockAch('wave10');
@@ -4284,11 +4353,21 @@ function startWave(n) {
     return;
   }
 
-  G.waveQ = waveProfile(n).count;
+  const event = waveEvent(n);
+  const threat = waveProfile(n);
+
+  G.eventId = event ? event.id : 'standard';
+  G.waveQ = Math.ceil(threat.count * (event ? event.spawnMultiplier : 1));
   G.spawnT = 1.1;
   G.waveState = 'spawning';
 
-  banner('WAVE ' + String(n).padStart(2, '0'));
+  if (event) {
+    banner(event.name);
+    toast(event.description, event.tone);
+  } else {
+    banner('WAVE ' + String(n).padStart(2, '0'));
+  }
+
   AU.waveSnd();
 }
 
@@ -4310,10 +4389,38 @@ function waveProfile(n = G.wave) {
   };
 }
 
+function waveEvent(n = G.wave) {
+  const wave = Math.max(1, Math.floor(n));
+
+  if (wave < 3 || wave % 5 === 0) return null;
+  if (wave % 7 === 0) return WAVE_EVENTS.salvageRun;
+  if (wave % 4 === 0) return WAVE_EVENTS.asteroidStorm;
+  if (wave % 3 === 0) return WAVE_EVENTS.eliteHunt;
+
+  return null;
+}
+
+function activeWaveEvent() {
+  return WAVE_EVENTS[G.eventId] || null;
+}
+
+function eliteChance(wave = G.wave, eventId = G.eventId) {
+  if (wave < 3) return 0;
+
+  const base = Math.min(0.05 + Math.max(0, wave - 3) * 0.012, 0.24);
+  const eventBoost = WAVE_EVENTS[eventId]?.eliteBoost || 0;
+
+  return Math.min(0.52, base + eventBoost);
+}
+
 function pickType() {
   const r = Math.random();
+  const event = activeWaveEvent();
 
-  const ast = Math.min(0.06 + G.wave * 0.008, 0.18);
+  const ast = Math.min(
+    0.06 + G.wave * 0.008 + (event?.asteroidBias || 0),
+    event?.id === 'asteroidStorm' ? 0.58 : 0.18
+  );
   const tank = Math.min(0.06 + G.wave * 0.022, 0.3);
   const stri = Math.min(0.16 + G.wave * 0.034, 0.46);
 
@@ -4322,6 +4429,45 @@ function pickType() {
   const rr = (r - ast) / (1 - ast);
 
   return rr < tank ? 'tank' : rr < tank + stri ? 'striker' : 'drone';
+}
+
+function pickEliteKind() {
+  const r = Math.random();
+
+  return r < 0.42 ? 'aegis' : r < 0.76 ? 'berserker' : 'splitter';
+}
+
+function applyEliteModifier(e, kind = pickEliteKind()) {
+  const profile = ELITE_TYPES[kind] || ELITE_TYPES.aegis;
+  const scale = 1.35 + Math.min(0.35, Math.max(0, G.wave - 3) * 0.018);
+
+  e.elite = true;
+  e.eliteKind = kind;
+  e.eliteName = profile.name;
+  e.eliteColor = profile.color;
+  e.maxHp = Math.ceil(e.hp * scale);
+  e.hp = e.maxHp;
+  e.val = Math.round(e.val * 2.25);
+  e.vy *= profile.speed;
+
+  if (kind === 'aegis') {
+    e.shieldMax = Math.ceil(4 + G.wave * 0.65);
+    e.shieldHp = e.shieldMax;
+    e.shieldBroken = false;
+  } else if (kind === 'berserker') {
+    e.rage = true;
+  } else {
+    e.splitCount = 2;
+  }
+
+  return e;
+}
+
+function eliteSpeedScale(e) {
+  if (e.eliteKind !== 'berserker') return 1;
+
+  const health = clamp(e.hp / Math.max(e.maxHp || e.hp, 1), 0, 1);
+  return 1.05 + (1 - health) * 0.62;
 }
 
 function spawnEnemy() {
@@ -4368,6 +4514,19 @@ function spawnEnemy() {
     e.val = 600;
   }
 
+  const event = activeWaveEvent();
+  const guaranteedElite = event?.id === 'eliteHunt' &&
+    type !== 'asteroid' &&
+    !G.eventEliteSpawned;
+
+  if (type !== 'asteroid' && (guaranteedElite || Math.random() < eliteChance())) {
+    applyEliteModifier(e);
+
+    if (event?.id === 'eliteHunt') {
+      G.eventEliteSpawned = true;
+    }
+  }
+
   G.enemies.push(e);
 }
 
@@ -4394,6 +4553,9 @@ function enemyFire(e) {
     shot(-0.3);
     shot(0);
     shot(0.3);
+  } else if (e.eliteKind === 'berserker') {
+    shot(-0.12);
+    shot(0.12);
   } else {
     shot(0);
   }
@@ -4419,6 +4581,45 @@ function nearestEnemy(x, y) {
 function enemyIsTargetable(e) {
   if (e.type === 'boss') return e.entered === true;
   return e.y >= Math.max(e.r || 0, 0);
+}
+
+function damageEnemy(e, amount) {
+  let remaining = Math.max(0, Number(amount) || 0);
+
+  if (e.eliteKind === 'aegis' && e.shieldHp > 0) {
+    const absorbed = Math.min(e.shieldHp, remaining);
+
+    e.shieldHp -= absorbed;
+    remaining -= absorbed;
+
+    if (e.shieldHp <= 0 && !e.shieldBroken) {
+      e.shieldHp = 0;
+      e.shieldBroken = true;
+
+      G.rings.push({
+        x: e.x,
+        y: e.y,
+        r: e.r * 0.7,
+        vr: 520,
+        a: 0.9
+      });
+
+      burst(e.x, e.y, {
+        n: 18,
+        spd: 180,
+        spdV: 90,
+        life: 0.45,
+        size: 7,
+        cols: [PAL.cyan, PAL.white],
+        drag: 0.9
+      });
+
+      toast('AEGIS SHIELD BROKEN', 'gold');
+    }
+  }
+
+  e.hp -= remaining;
+  return e.hp <= 0;
 }
 
 function projectileDamage(base) {
@@ -4741,6 +4942,45 @@ function bossDeath(e) {
   }
 }
 
+function spawnSplitterDrones(e) {
+  const room = Math.max(0, 70 - G.enemies.length);
+  const count = Math.min(e.splitCount || 2, room);
+
+  for (let k = 0; k < count; k++) {
+    const x = clamp(e.x + rand(-28, 28), 24, G.w - 24);
+
+    G.enemies.push({
+      type: 'drone',
+      x,
+      y: e.y,
+      t: rand(0, 6),
+      flash: 0,
+      fireT: rand(1.8, 3.2),
+      hp: Math.max(1, Math.ceil(G.wave / 12)),
+      r: 14,
+      baseX: x,
+      amp: rand(18, 52),
+      freq: rand(1.8, 2.8),
+      vy: (rand(100, 135) + G.wave * 3) * waveProfile().speed,
+      val: Math.max(30, Math.floor(e.val * 0.16)),
+      mini: true
+    });
+  }
+
+  if (count > 0) {
+    toast('SPLITTER CORE RELEASED', 'red');
+    burst(e.x, e.y, {
+      n: 18,
+      spd: 180,
+      spdV: 100,
+      life: 0.5,
+      size: 7,
+      cols: [PAL.surge, PAL.white],
+      drag: 0.88
+    });
+  }
+}
+
 /* =========================================================================
    Kills / damage / game over
    ========================================================================= */
@@ -4769,7 +5009,7 @@ function killEnemy(e, i) {
     G.surge = Math.min(100, G.surge + 60 * G.surgeMult);
     bossDeath(e);
     G.dropDry = 0;
-    awardRunXp(runXpValue(e.type));
+    awardRunXp(runXpValue(e.type, e.elite));
     return;
   }
 
@@ -4778,7 +5018,10 @@ function killEnemy(e, i) {
     e.type === 'striker' ? 12 :
     6;
 
-  G.surge = Math.min(100, G.surge + surgeFill * G.surgeMult);
+  G.surge = Math.min(
+    100,
+    G.surge + surgeFill * G.surgeMult * (e.elite ? 1.25 : 1)
+  );
 
   if (e.type === 'tank') {
     G.hitStop = Math.max(G.hitStop, 0.06);
@@ -4795,14 +5038,24 @@ function killEnemy(e, i) {
   explosion(e.x, e.y, s);
   AU.boom(s * 0.8, e.x);
 
+  if (e.eliteKind === 'splitter') {
+    spawnSplitterDrones(e);
+  }
+
   G.dropDry++;
 
+  const event = activeWaveEvent();
   const chance =
     e.type === 'tank' ? 0.32 :
     e.type === 'asteroid' ? 0.08 :
     0.11;
+  const dropChance = Math.min(
+    0.9,
+    chance + (e.elite ? 0.12 : 0) + (event?.dropBonus || 0)
+  );
+  const dropLimit = event?.salvageLimit || 14;
 
-  if (Math.random() < chance || G.dropDry >= 14) {
+  if (Math.random() < dropChance || G.dropDry >= dropLimit) {
     G.dropDry = 0;
 
     const types = ['triple', 'rapid', 'shield', 'seeker'];
@@ -4824,7 +5077,7 @@ function killEnemy(e, i) {
     });
   }
 
-  awardRunXp(runXpValue(e.type));
+  awardRunXp(runXpValue(e.type, e.elite));
 }
 
 function hitPlayer() {
@@ -5127,7 +5380,9 @@ function updateWaves(dt) {
     if (G.spawnT <= 0 && G.waveQ > 0) {
       spawnEnemy();
       G.waveQ--;
-      G.spawnT = waveProfile().spawnGap * rand(0.72, 1.18);
+      const event = activeWaveEvent();
+      const gapMultiplier = event?.spawnGapMultiplier || 1;
+      G.spawnT = waveProfile().spawnGap * gapMultiplier * rand(0.72, 1.18);
     }
 
     if (G.waveQ <= 0) {
@@ -5215,7 +5470,7 @@ function updateWorld(dt) {
           enemyIsTargetable(e) &&
           Math.hypot(e.x - m.x, e.y - m.y) < e.r + 10
         ) {
-          e.hp -= projectileDamage(3);
+          const destroyed = damageEnemy(e, projectileDamage(3));
           e.flash = 1;
           dead = true;
 
@@ -5242,7 +5497,7 @@ function updateWorld(dt) {
 
           AU.boom(0.6, m.x);
 
-          if (e.hp <= 0) {
+          if (destroyed) {
             killEnemy(e, j);
 
             if (G.state !== 'playing') {
@@ -5297,27 +5552,29 @@ function updateWorld(dt) {
     if (e.type === 'boss') {
       updateBoss(e, dt);
     } else {
+      const movementScale = eliteSpeedScale(e);
+
       if (e.type === 'asteroid') {
-        e.y += e.vy * dt;
-        e.x += e.vx * dt;
+        e.y += e.vy * movementScale * dt;
+        e.x += e.vx * movementScale * dt;
         e.rot += e.vr * dt;
 
         if (e.x < e.r || e.x > G.w - e.r) {
           e.vx *= -1;
         }
       } else if (e.type === 'drone') {
-        e.y += e.vy * dt;
+        e.y += e.vy * movementScale * dt;
         e.x = clamp(
           e.baseX + Math.sin(e.t * e.freq) * e.amp,
           24,
           G.w - 24
         );
       } else if (e.type === 'striker') {
-        e.y += e.vy * dt;
-        e.x += clamp(p.x - e.x, -140, 140) * 0.8 * dt;
+        e.y += e.vy * movementScale * dt;
+        e.x += clamp(p.x - e.x, -140, 140) * 0.8 * movementScale * dt;
       } else {
-        e.y += e.vy * dt;
-        e.x += Math.sin(e.t * 0.7) * 14 * dt;
+        e.y += e.vy * movementScale * dt;
+        e.x += Math.sin(e.t * 0.7) * 14 * movementScale * dt;
       }
 
       if (
@@ -5334,8 +5591,12 @@ function updateWorld(dt) {
             e.type === 'tank' ? 2.6 :
             e.type === 'striker' ? 2.0 :
             3.0;
+          const fireMultiplier = e.eliteKind === 'berserker' ? 0.68 : 1;
 
-          e.fireT = Math.max(waveProfile().fireFloor, base - G.wave * 0.06) * rand(0.75, 1.25);
+          e.fireT = Math.max(
+            waveProfile().fireFloor * fireMultiplier,
+            (base - G.wave * 0.06) * fireMultiplier
+          ) * rand(0.75, 1.25);
         }
       }
 
@@ -5465,7 +5726,7 @@ function updateWorld(dt) {
           G.bullets.splice(i, 1);
           hit = true;
 
-          e.hp -= projectileDamage(1);
+          const destroyed = damageEnemy(e, projectileDamage(1));
           e.flash = 1;
 
           burst(b.x, b.y, {
@@ -5478,7 +5739,7 @@ function updateWorld(dt) {
             drag: 0.88
           });
 
-          if (e.hp <= 0) {
+          if (destroyed) {
             killEnemy(e, j);
 
             if (G.state !== 'playing') return;
@@ -5506,10 +5767,10 @@ function updateWorld(dt) {
       if (Math.hypot(e.x - p.x, e.y - p.y) < e.r * 0.8 + p.r) {
         hitPlayer();
 
-        e.hp -= 4;
+        const destroyed = damageEnemy(e, 4);
         e.flash = 1;
 
-        if (e.hp <= 0) {
+        if (destroyed) {
           killEnemy(e, j);
 
           if (G.state !== 'playing') return;
@@ -5800,6 +6061,51 @@ function buildScene() {
       continue;
     }
 
+    if (e.elite) {
+      const eliteColor = e.eliteColor || [1, 0.45, 0.18];
+      const pulse = 1 + Math.sin(t * 5.5 + e.t) * 0.08;
+
+      glow(
+        e.x,
+        e.y,
+        e.r * 4.8 * pulse,
+        eliteColor[0],
+        eliteColor[1],
+        eliteColor[2],
+        0.25 + 0.08 * Math.sin(t * 8 + e.t)
+      );
+
+      push(
+        addN,
+        e.x,
+        e.y,
+        e.t * 0.65,
+        10,
+        e.r * 2.65 * pulse,
+        e.r * 2.65 * pulse,
+        0.26 + 0.08 * Math.sin(t * 6 + e.t),
+        eliteColor[0],
+        eliteColor[1],
+        eliteColor[2]
+      );
+
+      if (e.eliteKind === 'aegis' && e.shieldHp > 0) {
+        push(
+          addN,
+          e.x,
+          e.y,
+          t * 0.4,
+          11,
+          e.r * 2.35,
+          e.r * 2.35,
+          0.24 + 0.1 * Math.sin(t * 7),
+          0.35,
+          0.95,
+          1
+        );
+      }
+    }
+
     if (e.type === 'asteroid') {
       glow(
         e.x,
@@ -5830,14 +6136,16 @@ function buildScene() {
       continue;
     }
 
+    const enemyColor = e.elite ? e.eliteColor : [1, 0.38, 0.16];
+
     glow(
       e.x,
       e.y,
       e.r * 3,
-      1,
-      0.38,
-      0.16,
-      0.22
+      enemyColor[0],
+      enemyColor[1],
+      enemyColor[2],
+      e.elite ? 0.3 : 0.22
     );
 
     const f = e.flash;
@@ -5854,6 +6162,7 @@ function buildScene() {
 
     const sz =
       e.type === 'tank' ? 104 :
+      e.mini ? 46 :
       e.type === 'drone' ? 66 :
       62;
 
@@ -5866,9 +6175,9 @@ function buildScene() {
       sz,
       sz,
       1,
-      1 + f * 2,
-      1 + f * 2,
-      1 + f * 2
+      e.elite ? enemyColor[0] + f * 0.7 : 1 + f * 2,
+      e.elite ? enemyColor[1] + f * 0.7 : 1 + f * 2,
+      e.elite ? enemyColor[2] + f * 0.7 : 1 + f * 2
     );
   }
 
@@ -6198,6 +6507,22 @@ function hud(rdt) {
   setTxt($('hXp'), `${Math.floor(G.runXp)} / ${G.runXpNext}`);
   $('xpBar').firstElementChild.style.width =
     clamp(G.runXp / Math.max(G.runXpNext, 1), 0, 1) * 100 + '%';
+
+  const event = activeWaveEvent();
+  const showEvent =
+    (G.state === 'playing' || G.state === 'paused' || G.state === 'upgrade') &&
+    !!event &&
+    G.waveState !== 'waiting';
+
+  setChromeVisible('eventHud', showEvent);
+
+  if (showEvent) {
+    setTxt($('eventName'), event.name);
+    setTxt($('eventDesc'), event.description);
+    $('eventHud').classList.toggle('eliteEvent', event.id === 'eliteHunt');
+    $('eventHud').classList.toggle('stormEvent', event.id === 'asteroidStorm');
+    $('eventHud').classList.toggle('salvageEvent', event.id === 'salvageRun');
+  }
 
   $('comboBar').firstElementChild.style.width =
     (G.mult >= 9 ? 100 : (G.combo % 6) / 6 * 100) + '%';

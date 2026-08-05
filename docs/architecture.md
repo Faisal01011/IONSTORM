@@ -33,6 +33,14 @@ three unique temporary systems. Choosing a card applies its effect immediately;
 the choice is kept only in the current `G.runUpgrades` run state and is cleared
 by `resetRun()`.
 
+Wave composition is driven by `waveProfile()` and `waveEvent()`. From wave 3,
+eligible contacts can be promoted to one of three temporary elite modifiers:
+Aegis absorbs incoming damage with an energy shield, Berserker accelerates as
+its hull falls, and Splitter releases two smaller drones on destruction. Event
+waves expose their active rule through `eventHud`; Elite Hunt raises elite
+frequency, Asteroid Storm increases debris, and Salvage Run improves pickup
+drops. Event state is reset at the start of each wave and does not persist.
+
 Persistent values are intentionally local to the browser:
 
 | Key | Purpose |

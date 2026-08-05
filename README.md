@@ -18,6 +18,7 @@ It uses WebGPU when available and falls back to WebGL2 automatically, so the sam
 - GPU-driven particles, instanced sprites, procedural backgrounds, and screen effects
 - Automatic cannons with pointer, keyboard, and touch movement
 - Escalating enemy waves, asteroids, power-ups, and Dreadnought bosses
+- Elite enemy modifiers, splitter reinforcements, and rotating event waves
 - In-run XP progression with three-choice temporary upgrade drafts
 - SURGE overdrive, combo multipliers, achievements, and score chasing
 - Three ships with distinct speed, hull, shield, and firing profiles
@@ -42,6 +43,11 @@ It uses WebGPU when available and falls back to WebGL2 automatically, so the sam
 During a deployment, destroyed enemies grant run XP. Each level-up pauses the
 mission and offers three different temporary systems; choose with `1`–`3` on
 desktop or tap a card on mobile. These upgrades reset when the run ends.
+
+From wave 3 onward, elite contacts can appear with Aegis shields, Berserker
+rage drives, or Splitter cores. Every few waves also introduces a tactical event
+such as Elite Hunt, Asteroid Storm, or Salvage Run; the event panel explains the
+current modifier while the wave is active.
 
 Visual and performance preferences are saved locally in the browser.
 The Hangar's **INPUT RESPONSE** slider tunes touch, pointer, and keyboard steering from 75% (precise) to 175% (fast), with 125% as the default.
@@ -105,10 +111,9 @@ The current records board is intentionally local to the browser; it is not a glo
 
 The next gameplay milestones are:
 
-1. Elite enemies with randomized modifiers
-2. Multi-phase Dreadnought encounters
-3. Daily seeded challenges with shareable scores
-4. Installable PWA support and gamepad input
+1. Multi-phase Dreadnought encounters
+2. Daily seeded challenges with shareable scores
+3. Installable PWA support and gamepad input
 
 ## License
 
