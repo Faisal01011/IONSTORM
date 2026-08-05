@@ -17,7 +17,7 @@ It uses WebGPU when available and falls back to WebGL2 automatically, so the sam
 - WebGPU rendering with a WebGL2 fallback
 - GPU-driven particles, instanced sprites, procedural backgrounds, and screen effects
 - Automatic cannons with pointer, keyboard, and touch movement
-- Escalating enemy waves, asteroids, power-ups, and four-phase Dreadnought bosses
+- Escalating enemy waves, asteroids, power-ups, and tiered four-phase Dreadnought bosses
 - Elite enemy modifiers, splitter reinforcements, and rotating event waves
 - In-run XP progression with three-choice temporary upgrade drafts
 - SURGE overdrive, combo multipliers, achievements, and score chasing
@@ -51,6 +51,11 @@ current modifier while the wave is active.
 
 Every fifth wave culminates in a Dreadnought encounter. Its four phases—Hunter,
 Siege, Breach, and Meltdown—change movement, reinforcements, and attack patterns.
+Later encounters also advance the Dreadnought Mk: hull and damage resistance rise,
+attack cadence and projectile speed increase, reinforcements arrive in larger
+groups, and the exposed-core counter window tightens. Each Mk uses a different
+attack doctrine—Ravager, Warden, Harrier, Swarmcore, or Annihilator—so reaching
+the next boss is a new combat problem rather than a repeated wave-5 loop.
 Attacks are telegraphed in the boss panel before they fire, and each completed
 pattern opens a short **CORE EXPOSED** window for high-damage counterfire.
 
