@@ -876,6 +876,33 @@ button.cham:disabled {
   box-shadow: 0 0 8px var(--ember);
 }
 
+.chip.pierce {
+  color: #d8b6ff;
+}
+
+.chip.pierce .bar i {
+  background: #c48cff;
+  box-shadow: 0 0 8px #c48cff;
+}
+
+.chip.mag {
+  color: #b8ffed;
+}
+
+.chip.mag .bar i {
+  background: #62f4d2;
+  box-shadow: 0 0 8px #62f4d2;
+}
+
+.chip.slow {
+  color: #d9e2ff;
+}
+
+.chip.slow .bar i {
+  background: #8aa8ff;
+  box-shadow: 0 0 8px #8aa8ff;
+}
+
 .chip.hidden {
   display: none;
 }
