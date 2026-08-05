@@ -83,6 +83,20 @@ test('in-run progression exposes an accessible upgrade choice flow', () => {
   assert.match(GAME_SOURCE, /choices\.length < Math\.min\(3, ids\.length\)/);
 });
 
+test('Dreadnought encounters expose readable multi-phase combat states', () => {
+  assert.match(HTML, /id="bossStatus"/);
+  assert.match(HTML, /id="bossAttack"/);
+  assert.match(GAME_SOURCE, /const BOSS_PHASES =/);
+  assert.match(GAME_SOURCE, /function bossPhaseForHealth\(fraction\)/);
+  assert.match(GAME_SOURCE, /function beginBossAttack\(e\)/);
+  assert.match(GAME_SOURCE, /function damageBoss\(e, amount\)/);
+  assert.match(GAME_SOURCE, /phaseTransitionT/);
+  assert.match(GAME_SOURCE, /CORE EXPOSED/);
+  assert.match(CSS, /#boss\.coreOpen/);
+  assert.match(CSS, /#boss\.telegraph/);
+  assert.match(CSS, /#boss\.phaseShift/);
+});
+
 test('keyboard navigation cannot accidentally launch or activate menu actions', () => {
   assert.match(GAME_SOURCE, /k === 'tab'/);
   assert.match(GAME_SOURCE, /interactiveTarget && \(k === 'enter' \|\| k === ' '\)/);

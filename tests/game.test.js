@@ -151,6 +151,7 @@ function makeHarness() {
       RUN_UPGRADES,
       ELITE_TYPES,
       WAVE_EVENTS,
+      BOSS_PHASES,
       AU,
       COMPUTE_WGSL,
       PART_WGSL,
@@ -162,6 +163,11 @@ function makeHarness() {
       startWave,
       waveProfile,
       waveEvent,
+      bossPhaseProfile,
+      bossPhaseForHealth,
+      spawnBoss,
+      updateBoss,
+      damageBoss,
       eliteChance,
       applyEliteModifier,
       eliteSpeedScale,
@@ -265,6 +271,99 @@ test('event HUD follows the active event and hides for standard and boss waves',
   api.hud(0.016);
 
   assert.equal(elements.get('eventHud').classList.contains('hidden'), true);
+});
+
+test('Dreadnoughts expose four distinct escalating phase profiles', () => {
+  const { api } = makeHarness();
+
+  assert.equal(api.bossPhaseForHealth(0.9), 1);
+  assert.equal(api.bossPhaseForHealth(0.75), 2);
+  assert.equal(api.bossPhaseForHealth(0.5), 3);
+  assert.equal(api.bossPhaseForHealth(0.25), 4);
+  assert.equal(api.bossPhaseProfile(1).name, 'HUNTER');
+  assert.equal(api.bossPhaseProfile(2).attack, 'SPIRAL LANCE');
+  assert.equal(api.bossPhaseProfile(4).name, 'MELTDOWN');
+  assert.ok(api.BOSS_PHASES[4].cooldown < api.BOSS_PHASES[1].cooldown);
+  assert.ok(api.BOSS_PHASES[4].move > api.BOSS_PHASES[1].move);
+});
+
+test('boss phase shifts are protected and attacks are telegraphed before firing', () => {
+  const { api } = makeHarness();
+
+  api.resize();
+  api.resetRun();
+  api.G.wave = 5;
+  api.G.state = 'playing';
+  api.G.enemies.length = 0;
+  api.spawnBoss();
+
+  const boss = api.G.enemies[0];
+  boss.y = 150;
+  boss.entered = true;
+  boss.hp = boss.maxHp * 0.74;
+  boss.attackT = 10;
+
+  api.updateBoss(boss, 0.016);
+
+  assert.equal(boss.phase, 2);
+  assert.ok(boss.phaseTransitionT > 0);
+
+  const protectedHp = boss.hp;
+  api.damageBoss(boss, 10);
+  assert.equal(boss.hp, protectedHp);
+
+  api.updateBoss(boss, 1.2);
+  boss.attackT = 0;
+  boss.telegraphT = 0;
+  boss.coreOpenT = 0;
+  api.G.ebullets.length = 0;
+
+  api.updateBoss(boss, 0.016);
+
+  assert.ok(boss.telegraphT > 0);
+  assert.equal(api.G.ebullets.length, 0);
+
+  const telegraph = boss.telegraphT;
+  api.updateBoss(boss, telegraph + 0.01);
+
+  assert.ok(api.G.ebullets.length > 0);
+  assert.equal(boss.coreOpen, true);
+});
+
+test('boss HUD communicates phase, attack warning, and exposed core state', () => {
+  const { api, elements } = makeHarness();
+
+  api.resize();
+  api.resetRun();
+  api.G.wave = 5;
+  api.G.enemies.push({
+    type: 'boss',
+    x: 600,
+    y: 150,
+    r: 105,
+    hp: 180,
+    maxHp: 300,
+    phase: 2,
+    phaseTransitionT: 0,
+    telegraphT: 0.4,
+    coreOpen: false,
+    attackName: 'SPIRAL LANCE',
+    entered: true
+  });
+
+  api.hud(0.016);
+
+  assert.equal(elements.get('bossPhase').textContent, 'PHASE 2 · SIEGE');
+  assert.equal(elements.get('bossStatus').textContent, 'INCOMING — SPIRAL LANCE');
+  assert.equal(elements.get('boss').classList.contains('telegraph'), true);
+
+  const boss = api.G.enemies[0];
+  boss.telegraphT = 0;
+  boss.coreOpen = true;
+  api.hud(0.016);
+
+  assert.equal(elements.get('bossStatus').textContent, 'CORE EXPOSED');
+  assert.equal(elements.get('boss').classList.contains('coreOpen'), true);
 });
 
 test('elite modifiers add distinct threat and reward behavior', () => {

@@ -41,6 +41,14 @@ waves expose their active rule through `eventHud`; Elite Hunt raises elite
 frequency, Asteroid Storm increases debris, and Salvage Run improves pickup
 drops. Event state is reset at the start of each wave and does not persist.
 
+Every fifth wave creates one Dreadnought. `BOSS_PHASES` maps its health bands to
+four readable combat profiles: Hunter, Siege, Breach, and Meltdown. The boss
+telegraphs each attack through `telegraphT` before emitting projectiles, pauses
+briefly during `phaseTransitionT`, and exposes its core through `coreOpenT` after
+an attack. `damageBoss()` keeps the body damageable while shielded, increases
+damage during the exposed window, and makes phase changes fair by temporarily
+ignoring hits and clearing the previous bullet pattern.
+
 Persistent values are intentionally local to the browser:
 
 | Key | Purpose |
