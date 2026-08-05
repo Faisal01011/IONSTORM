@@ -749,16 +749,16 @@ const COSMETICS = {
     { id: 'violet', name: 'VOID VIOLET', desc: 'A deep-space finish for survivors', hex: '#d18cff', rgb: [.82, .45, 1], requires: 'wave10' }
   ],
   trails: [
-    { id: 'ion', name: 'ION TRAIL', desc: 'Balanced engine particles', hex: '#5ff2ff', palette: [[1, 1, 1], [.62, .96, 1], [.3, .85, 1]], requires: null },
-    { id: 'plasma', name: 'PLASMA TRAIL', desc: 'Hotter, denser exhaust', hex: '#ffb454', palette: [[1, 1, 1], [1, .72, .3], [1, .32, .16]], requires: 'asteroid' },
-    { id: 'prism', name: 'PRISM TRAIL', desc: 'A shifting spectral exhaust', hex: '#d18cff', palette: [[.4, 1, 1], [1, .45, .95], [1, .8, .25]], requires: 'surgeUsed' },
-    { id: 'nova', name: 'NOVA TRAIL', desc: 'A boss-slayer signature', hex: '#ffffff', palette: [[1, 1, 1], [1, .8, .34], [1, .28, .58]], requires: 'bossKill' }
+    { id: 'ion', name: 'ION TRAIL', desc: 'Balanced engine particles', hex: '#5ff2ff', palette: [[1, 1, 1], [.62, .96, 1], [.3, .85, 1]], count: 2, speed: 1, life: [.22, .45], size: [6, 10], intensity: 1, requires: null },
+    { id: 'plasma', name: 'PLASMA TRAIL', desc: 'Hotter, denser exhaust', hex: '#ffb454', palette: [[1, 1, 1], [1, .72, .3], [1, .32, .16]], count: 3, speed: 1.12, life: [.28, .54], size: [7, 12], intensity: 1.12, requires: 'asteroid' },
+    { id: 'prism', name: 'PRISM TRAIL', desc: 'A shifting spectral exhaust', hex: '#d18cff', palette: [[.4, 1, 1], [1, .45, .95], [1, .8, .25]], count: 3, speed: .94, life: [.26, .52], size: [6, 11], intensity: 1.08, requires: 'surgeUsed' },
+    { id: 'nova', name: 'NOVA TRAIL', desc: 'A boss-slayer signature', hex: '#ffffff', palette: [[1, 1, 1], [1, .8, .34], [1, .28, .58]], count: 4, speed: 1.34, life: [.34, .68], size: [8, 14], intensity: 1.25, requires: 'bossKill' }
   ],
   engines: [
-    { id: 'standard', name: 'STANDARD CORE', desc: 'Stable thrust profile', hex: '#5ff2ff', color: [.35, .95, 1], requires: null },
-    { id: 'flare', name: 'FLARE CORE', desc: 'Longer, brighter exhaust', hex: '#ffb454', color: [1, .58, .2], requires: 'hangarBuy' },
-    { id: 'pulse', name: 'PULSE CORE', desc: 'Rhythmic high-energy thrust', hex: '#d18cff', color: [.82, .35, 1], requires: 'combo20' },
-    { id: 'nova', name: 'NOVA CORE', desc: 'Heavy overdrive signature', hex: '#ff5c47', color: [1, .24, .16], requires: 'bossKill' }
+    { id: 'standard', name: 'STANDARD CORE', desc: 'Stable thrust profile', hex: '#5ff2ff', color: [.35, .95, 1], glowSize: 56, coreSize: 34, pulseAmount: .06, pulseSpeed: 40, trailPower: 1, alpha: .45, requires: null },
+    { id: 'flare', name: 'FLARE CORE', desc: 'Longer, brighter exhaust', hex: '#ffb454', color: [1, .58, .2], glowSize: 70, coreSize: 44, pulseAmount: .1, pulseSpeed: 34, trailPower: 1.18, alpha: .58, requires: 'hangarBuy' },
+    { id: 'pulse', name: 'PULSE CORE', desc: 'Rhythmic high-energy thrust', hex: '#d18cff', color: [.82, .35, 1], glowSize: 62, coreSize: 38, pulseAmount: .18, pulseSpeed: 12, trailPower: 1.05, alpha: .56, requires: 'combo20' },
+    { id: 'nova', name: 'NOVA CORE', desc: 'Heavy overdrive signature', hex: '#ff5c47', color: [1, .24, .16], glowSize: 82, coreSize: 52, pulseAmount: .14, pulseSpeed: 22, trailPower: 1.42, alpha: .72, requires: 'bossKill' }
   ],
   victories: [
     { id: 'burst', name: 'ION BURST', desc: 'Classic end-of-battle burst', hex: '#5ff2ff', colors: [[.37, .95, 1]], requires: null },
@@ -1018,7 +1018,9 @@ const G = {
   ],
   shipTint: [1, 1, 1],
   trailStyle: 'ion',
+  trailProfile: null,
   engineStyle: 'standard',
+  engineProfile: null,
   victoryStyle: 'burst',
 
   /* World objects */
@@ -4734,18 +4736,23 @@ function resetRun(runMode = G.runMode) {
     ] : [
       [1, 1, 1],
       [0.62, 0.96, 1],
-    [0.3, 0.85, 1]
-  ];
+      [0.3, 0.85, 1]
+    ];
+
+  const engineProfile = cosmetics.engine.id === 'standard'
+    ? { ...cosmetics.engine, color: shipEngineCol }
+    : cosmetics.engine;
+  const trailProfile = cosmetics.trail.id === 'ion'
+    ? { ...cosmetics.trail, palette: shipEnginePal }
+    : cosmetics.trail;
 
   G.shipTint = cosmetics.color.id === 'ship'
     ? [1, 1, 1]
     : cosmetics.color.rgb;
-  G.engineCol = cosmetics.engine.id === 'standard'
-    ? shipEngineCol
-    : cosmetics.engine.color;
-  G.enginePal = cosmetics.trail.id === 'ion'
-    ? shipEnginePal
-    : cosmetics.trail.palette;
+  G.engineCol = engineProfile.color;
+  G.enginePal = trailProfile.palette;
+  G.trailProfile = trailProfile;
+  G.engineProfile = engineProfile;
   G.trailStyle = cosmetics.trail.id;
   G.engineStyle = cosmetics.engine.id;
   G.victoryStyle = cosmetics.victory.id;
@@ -6145,11 +6152,18 @@ function updatePlayer(dt) {
     AU.shoot();
   }
 
-  const trailCount = G.trailStyle === 'nova' ? 4 : G.trailStyle === 'prism' ? 3 : 2;
-  const trailPower = G.engineStyle === 'flare' ? 1.28 : G.engineStyle === 'nova' ? 1.5 : 1;
+  const trail = G.trailProfile || COSMETICS.trails[0];
+  const engine = G.engineProfile || COSMETICS.engines[0];
+  const trailCount = trail.count || 2;
+  const trailPower = (trail.speed || 1) * (engine.trailPower || 1);
+  const trailIntensity = (trail.intensity || 1) * (engine.id === 'pulse'
+    ? 1 + Math.sin(G.time * engine.pulseSpeed) * 0.24
+    : 1);
 
   for (let i = 0; i < trailCount; i++) {
-    const c = G.enginePal[(Math.random() * G.enginePal.length) | 0];
+    const c = trail.palette[(Math.random() * trail.palette.length) | 0];
+    const life = trail.life || [.22, .45];
+    const size = trail.size || [6, 10];
 
     pushP(
       p.x + rand(-5, 5),
@@ -6159,9 +6173,9 @@ function updatePlayer(dt) {
       c[0],
       c[1],
       c[2],
-      G.engineStyle === 'pulse' ? 1.4 + Math.sin(G.time * 12) * 0.45 : 1.4,
-      rand(0.22, 0.45) * trailPower,
-      rand(6, 10) * trailPower,
+      1.4 * trailIntensity,
+      rand(life[0], life[1]) * trailPower,
+      rand(size[0], size[1]) * (engine.trailPower || 1),
       0.88
     );
   }
@@ -6756,9 +6770,6 @@ function update(rdt) {
   if (!frozen) {
     G.slowT = Math.max(0, G.slowT - rdt);
 
-    const tint = G.shipTint || [1, 1, 1];
-    const enginePulse = G.engineStyle === 'pulse' ? 1 + Math.sin(t * 12) * 0.22 : 1;
-
     if (G.surgeActive) {
       G.surgeT -= rdt;
 
@@ -7120,10 +7131,16 @@ function buildScene() {
   /* Player */
   if (p.alive && (p.inv <= 0 || Math.floor(t * 28) % 2 === 0)) {
     const ec = G.engineCol;
+    const engine = G.engineProfile || COSMETICS.engines[0];
+    const tint = G.shipTint || [1, 1, 1];
+    const enginePulse = 1 + Math.sin(t * (engine.pulseSpeed || 40)) * (engine.pulseAmount || .06);
+    const engineSize = (engine.glowSize || 56) * enginePulse;
+    const coreSize = (engine.coreSize || 34) * enginePulse;
+    const engineAlpha = engine.alpha || .45;
 
     if (G.surgeActive) {
-      glow(p.x, p.y + 22, 70, 1, 0.3, 1, 0.6);
-      glow(p.x, p.y + 31, 44 + Math.sin(t * 50) * 8, 1, 0.5, 1, 0.8);
+      glow(p.x, p.y + 22, engineSize * 1.28, 1, 0.3, 1, Math.min(0.85, engineAlpha + 0.2));
+      glow(p.x, p.y + 31, coreSize * 1.28 + Math.sin(t * 50) * 8, 1, 0.5, 1, 0.8);
 
       push(
         instN,
@@ -7134,14 +7151,14 @@ function buildScene() {
         82,
         82,
         1,
-        tint[0] * enginePulse,
-        tint[1] * enginePulse,
-        tint[2] * enginePulse
+        tint[0],
+        tint[1] * 0.7,
+        tint[2]
       );
     } else {
-      const engineSize = G.engineStyle === 'flare' ? 68 : G.engineStyle === 'nova' ? 76 : 56;
-      glow(p.x, p.y + 22, engineSize, ec[0], ec[1], ec[2], 0.45);
-      glow(p.x, p.y + 31, (34 + Math.sin(t * 40) * 6) * enginePulse, 1, 1, 1, 0.7);
+      glow(p.x, p.y + 22, engineSize, ec[0], ec[1], ec[2], engineAlpha);
+      glow(p.x, p.y + 31, coreSize + Math.sin(t * (engine.pulseSpeed || 40)) * 6, 1, 1, 1, 0.7);
+      glow(p.x, p.y + 31, coreSize * 0.62, ec[0], ec[1], ec[2], engineAlpha * 0.78);
 
       push(
         instN,
@@ -7152,9 +7169,9 @@ function buildScene() {
         74,
         74,
         1,
-        tint[0] * enginePulse,
-        tint[1] * enginePulse,
-        tint[2] * enginePulse
+        tint[0],
+        tint[1],
+        tint[2]
       );
     }
 
