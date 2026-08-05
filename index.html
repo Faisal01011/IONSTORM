@@ -7,6 +7,13 @@
 
   <meta name="description" content="IONSTORM — a neon WebGPU arcade shooter with escalating boss fights, daily seeded challenges, SURGE overdrive, and roguelite run upgrades.">
   <meta name="theme-color" content="#04070f">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="IONSTORM">
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="ionstorm-icon.svg">
 
   <meta property="og:title" content="IONSTORM — WebGPU Arcade">
   <meta property="og:description" content="Defend the Veil. Ride the Surge.">
@@ -220,6 +227,11 @@
               <span class="actionHint desktopOnly">UTC SEEDED</span>
               <span class="actionHint mobileOnly">TODAY'S RUN</span>
             </button>
+
+            <button type="button" class="cham installAction hidden" id="installPrompt">
+              <span class="actionLabel">INSTALL IONSTORM</span>
+              <span class="actionHint">OFFLINE PLAY</span>
+            </button>
           </div>
 
           <div class="dailyBrief panel" aria-label="Daily challenge briefing">
@@ -364,6 +376,17 @@
             </div>
           </div>
           <div id="achGrid"></div>
+        </section>
+
+        <section class="hangarSection" aria-labelledby="cosmeticsHeading">
+          <div class="sectionHeading">
+            <span class="sectionIndex">05</span>
+            <div>
+              <h3 id="cosmeticsHeading">COSMETICS BAY</h3>
+              <p>Equip achievement-earned colors, trails, engine signatures, and victory effects.</p>
+            </div>
+          </div>
+          <div id="cosmeticsGrid"></div>
         </section>
       </div>
 

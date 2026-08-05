@@ -10,6 +10,8 @@ const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const GAME_SOURCE = fs.readFileSync(path.join(ROOT, 'src', 'game.js'), 'utf8');
 const PROFILE_SOURCE = fs.readFileSync(path.join(ROOT, 'src', 'profile.js'), 'utf8');
 const CSS = fs.readFileSync(path.join(ROOT, 'src', 'styles.css'), 'utf8');
+const MANIFEST = fs.readFileSync(path.join(ROOT, 'manifest.webmanifest'), 'utf8');
+const SERVICE_WORKER = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
 
 test('all local HTML asset references exist', () => {
   const references = [
@@ -26,6 +28,37 @@ test('all local HTML asset references exist', () => {
     const localPath = path.join(ROOT, decodeURIComponent(url.pathname));
     assert.equal(fs.existsSync(localPath), true, `missing local asset: ${url.pathname}`);
   }
+});
+
+test('PWA shell exposes install metadata and offline caching', () => {
+  assert.match(HTML, /rel="manifest" href="manifest\.webmanifest"/);
+  assert.match(HTML, /id="installPrompt"/);
+  assert.match(MANIFEST, /"display":\s*"standalone"/);
+  assert.match(MANIFEST, /"start_url":\s*"\."/);
+  assert.match(MANIFEST, /ionstorm-icon\.svg/);
+  assert.match(SERVICE_WORKER, /caches\.open\(CACHE_NAME\)/);
+  assert.match(SERVICE_WORKER, /self\.addEventListener\('fetch'/);
+  assert.match(SERVICE_WORKER, /caches\.match\('\.\/index\.html'\)/);
+  assert.match(GAME_SOURCE, /navigator\.serviceWorker\.register\('\.\/sw\.js'/);
+  assert.match(GAME_SOURCE, /beforeinstallprompt/);
+  assert.match(GAME_SOURCE, /promptEvent\.prompt\(\)/);
+});
+
+test('Hangar exposes achievement-gated cosmetic categories', () => {
+  for (const id of ['cosmeticsHeading', 'cosmeticsGrid']) {
+    assert.match(HTML, new RegExp(`id="${id}"`), `missing cosmetics hook: ${id}`);
+  }
+
+  assert.match(GAME_SOURCE, /const COSMETICS =/);
+  assert.match(GAME_SOURCE, /function cosmeticUnlocked\(item\)/);
+  assert.match(GAME_SOURCE, /function equipCosmetic\(category, id\)/);
+  assert.match(GAME_SOURCE, /META\.cosmetics/);
+  assert.match(GAME_SOURCE, /function playVictoryEffect\(x, y\)/);
+  assert.match(GAME_SOURCE, /G\.trailStyle/);
+  assert.match(GAME_SOURCE, /G\.engineStyle/);
+  assert.match(GAME_SOURCE, /G\.victoryStyle/);
+  assert.match(CSS, /\.cosmeticCard/);
+  assert.match(CSS, /\.cosmeticOptions/);
 });
 
 test('every button declares its non-submit behavior', () => {

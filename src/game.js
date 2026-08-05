@@ -28,6 +28,37 @@ const TAU = Math.PI * 2;
 
 const DAILY_KEY = 'ionstorm.daily';
 
+let deferredInstallPrompt = null;
+
+function isStandaloneApp() {
+  return window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function setInstallPromptVisible(visible) {
+  const button = $('installPrompt');
+  if (!button || isStandaloneApp()) return;
+  button.classList.toggle('hidden', !visible);
+  button.setAttribute('aria-hidden', String(!visible));
+}
+
+function registerOfflineShell() {
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {
+    /* Offline play is progressive enhancement; gameplay remains available. */
+  });
+}
+
+window.addEventListener('beforeinstallprompt', event => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  setInstallPromptVisible(true);
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  setInstallPromptVisible(false);
+});
+
 const DAILY_MODIFIERS = [
   {
     id: 'redline',
@@ -710,6 +741,67 @@ const ACHIEVEMENTS = {
   }
 };
 
+const COSMETICS = {
+  colors: [
+    { id: 'ship', name: 'FRAME STANDARD', desc: 'Use the selected ship frame color', hex: '#5ff2ff', rgb: [1, .95, 1], requires: null },
+    { id: 'crimson', name: 'CRIMSON VEIL', desc: 'A hot red combat finish', hex: '#ff5c47', rgb: [1, .42, .32], requires: 'firstKill' },
+    { id: 'gold', name: 'SOLAR GOLD', desc: 'A bright reward for combo pilots', hex: '#ffb454', rgb: [1, .72, .34], requires: 'combo20' },
+    { id: 'violet', name: 'VOID VIOLET', desc: 'A deep-space finish for survivors', hex: '#d18cff', rgb: [.82, .45, 1], requires: 'wave10' }
+  ],
+  trails: [
+    { id: 'ion', name: 'ION TRAIL', desc: 'Balanced engine particles', hex: '#5ff2ff', palette: [[1, 1, 1], [.62, .96, 1], [.3, .85, 1]], count: 2, speed: 1, life: [.22, .45], size: [6, 10], intensity: 1, requires: null },
+    { id: 'plasma', name: 'PLASMA TRAIL', desc: 'Hotter, denser exhaust', hex: '#ffb454', palette: [[1, 1, 1], [1, .72, .3], [1, .32, .16]], count: 3, speed: 1.12, life: [.28, .54], size: [7, 12], intensity: 1.12, requires: 'asteroid' },
+    { id: 'prism', name: 'PRISM TRAIL', desc: 'A shifting spectral exhaust', hex: '#d18cff', palette: [[.4, 1, 1], [1, .45, .95], [1, .8, .25]], count: 3, speed: .94, life: [.26, .52], size: [6, 11], intensity: 1.08, requires: 'surgeUsed' },
+    { id: 'nova', name: 'NOVA TRAIL', desc: 'A boss-slayer signature', hex: '#ffffff', palette: [[1, 1, 1], [1, .8, .34], [1, .28, .58]], count: 4, speed: 1.34, life: [.34, .68], size: [8, 14], intensity: 1.25, requires: 'bossKill' }
+  ],
+  engines: [
+    { id: 'standard', name: 'STANDARD CORE', desc: 'Stable thrust profile', hex: '#5ff2ff', color: [.35, .95, 1], glowSize: 56, coreSize: 34, pulseAmount: .06, pulseSpeed: 40, trailPower: 1, alpha: .45, requires: null },
+    { id: 'flare', name: 'FLARE CORE', desc: 'Longer, brighter exhaust', hex: '#ffb454', color: [1, .58, .2], glowSize: 70, coreSize: 44, pulseAmount: .1, pulseSpeed: 34, trailPower: 1.18, alpha: .58, requires: 'hangarBuy' },
+    { id: 'pulse', name: 'PULSE CORE', desc: 'Rhythmic high-energy thrust', hex: '#d18cff', color: [.82, .35, 1], glowSize: 62, coreSize: 38, pulseAmount: .18, pulseSpeed: 12, trailPower: 1.05, alpha: .56, requires: 'combo20' },
+    { id: 'nova', name: 'NOVA CORE', desc: 'Heavy overdrive signature', hex: '#ff5c47', color: [1, .24, .16], glowSize: 82, coreSize: 52, pulseAmount: .14, pulseSpeed: 22, trailPower: 1.42, alpha: .72, requires: 'bossKill' }
+  ],
+  victories: [
+    { id: 'burst', name: 'ION BURST', desc: 'Classic end-of-battle burst', hex: '#5ff2ff', colors: [[.37, .95, 1]], requires: null },
+    { id: 'fireworks', name: 'FIREWORKS', desc: 'A wide celebratory cascade', hex: '#ffb454', colors: [[1, .7, .2], [1, .3, .65], [.35, .9, 1]], requires: 'wave10' },
+    { id: 'crown', name: 'CROWN FLASH', desc: 'A victory flash for the juggernaut', hex: '#ffffff', colors: [[1, 1, 1], [1, .82, .25], [.4, 1, 1]], requires: 'hullMax' },
+    { id: 'dread', name: 'DREAD BREAKER', desc: 'A Dreadnought-ending signature', hex: '#ff5c47', colors: [[1, .2, .15], [1, .65, .2], [1, 1, 1]], requires: 'bossKill' }
+  ]
+};
+
+function cosmeticList(category) {
+  return COSMETICS[category] || [];
+}
+
+function cosmeticUnlocked(item) {
+  return !item.requires || !!META.achievements[item.requires];
+}
+
+function equippedCosmetics() {
+  const selected = META.cosmetics || {};
+  const pick = (category, fallback) => {
+    const item = cosmeticList(category).find(entry => entry.id === selected[category]);
+    return item && cosmeticUnlocked(item)
+      ? item
+      : cosmeticList(category).find(entry => entry.id === fallback) || cosmeticList(category)[0];
+  };
+
+  return {
+    color: pick('colors', 'ship'),
+    trail: pick('trails', 'ion'),
+    engine: pick('engines', 'standard'),
+    victory: pick('victories', 'burst')
+  };
+}
+
+function equipCosmetic(category, id) {
+  const item = cosmeticList(category).find(entry => entry.id === id);
+  if (!item || !cosmeticUnlocked(item)) return false;
+
+  META.cosmetics[category] = id;
+  saveMeta();
+  return true;
+}
+
 /* =========================================================================
    Settings
    ========================================================================= */
@@ -768,7 +860,13 @@ let META = {
     magnet: 0,
     speed: 0
   },
-  achievements: {}
+  achievements: {},
+  cosmetics: {
+    colors: 'ship',
+    trails: 'ion',
+    engines: 'standard',
+    victories: 'burst'
+  }
 };
 
 try {
@@ -788,6 +886,13 @@ try {
   for (const id of Object.keys(ACHIEVEMENTS)) {
     if (storedMeta.achievements && storedMeta.achievements[id] === true) {
       META.achievements[id] = true;
+    }
+  }
+
+  for (const [category, items] of Object.entries(COSMETICS)) {
+    const saved = storedMeta.cosmetics && storedMeta.cosmetics[category];
+    if (items.some(item => item.id === saved)) {
+      META.cosmetics[category] = saved;
     }
   }
 } catch {
@@ -911,6 +1016,12 @@ const G = {
     [0.62, 0.96, 1],
     [0.3, 0.85, 1]
   ],
+  shipTint: [1, 1, 1],
+  trailStyle: 'ion',
+  trailProfile: null,
+  engineStyle: 'standard',
+  engineProfile: null,
+  victoryStyle: 'burst',
 
   /* World objects */
   bullets: [],
@@ -4507,6 +4618,59 @@ function renderHangar() {
     ug.appendChild(row);
   }
 
+  /* Cosmetics */
+  const cg = $('cosmeticsGrid');
+  cg.innerHTML = '';
+
+  const cosmeticGroups = [
+    ['colors', 'SHIP COLORS'],
+    ['trails', 'ENGINE TRAILS'],
+    ['engines', 'ENGINE EFFECTS'],
+    ['victories', 'VICTORY EFFECTS']
+  ];
+
+  for (const [category, label] of cosmeticGroups) {
+    const group = document.createElement('div');
+    group.className = 'cosmeticGroup';
+    group.innerHTML = `<div class="cosmeticGroupTitle">${label}</div><div class="cosmeticOptions"></div>`;
+
+    const options = group.querySelector('.cosmeticOptions');
+    const selected = META.cosmetics[category];
+
+    for (const item of cosmeticList(category)) {
+      const unlocked = cosmeticUnlocked(item);
+      const active = selected === item.id && unlocked;
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'cosmeticCard panel' + (active ? ' sel' : '') + (!unlocked ? ' locked' : '');
+      card.disabled = !unlocked;
+      card.setAttribute('aria-pressed', String(active));
+      card.setAttribute('aria-label', `${item.name}${unlocked ? '' : ' — locked'}`);
+      card.innerHTML = `
+        <span class="cosmeticSwatch" style="--cosmetic:${item.hex}"></span>
+        <span class="cosmeticInfo">
+          <b>${item.name}</b>
+          <small>${unlocked ? item.desc : 'UNLOCK: ' + ACHIEVEMENTS[item.requires].name}</small>
+        </span>
+        <span class="cosmeticState">${active ? 'EQUIPPED' : unlocked ? 'EQUIP' : 'LOCKED'}</span>
+      `;
+
+      card.addEventListener('click', () => {
+        AU.ensure();
+        if (equipCosmetic(category, item.id)) {
+          renderHangar();
+          if (G.state === 'playing') resetRun(G.runMode);
+          updateTitleMeta();
+          AU.uiConfirm();
+        }
+      });
+
+      options.appendChild(card);
+    }
+
+    cg.appendChild(group);
+  }
+
   /* Achievements */
   const ag = $('achGrid');
   ag.innerHTML = '';
@@ -4532,6 +4696,7 @@ function renderHangar() {
 
 function resetRun(runMode = G.runMode) {
   const ship = currentShip();
+  const cosmetics = equippedCosmetics();
   const up = META.upgrades;
   const selectedMode = runMode === 'daily' ? 'daily' : 'standard';
   const dailySeed = selectedMode === 'daily' ? dailyChallengeForDate() : null;
@@ -4553,12 +4718,12 @@ function resetRun(runMode = G.runMode) {
     META.ship === 'bastion' ? 17 :
     1;
 
-  G.engineCol =
+  const shipEngineCol =
     META.ship === 'interceptor' ? [1, 0.72, 0.3] :
     META.ship === 'bastion' ? [1, 0.36, 0.28] :
     [0.35, 0.95, 1];
 
-  G.enginePal =
+  const shipEnginePal =
     META.ship === 'interceptor' ? [
       [1, 0.9, 0.7],
       [1, 0.72, 0.3],
@@ -4573,6 +4738,24 @@ function resetRun(runMode = G.runMode) {
       [0.62, 0.96, 1],
       [0.3, 0.85, 1]
     ];
+
+  const engineProfile = cosmetics.engine.id === 'standard'
+    ? { ...cosmetics.engine, color: shipEngineCol }
+    : cosmetics.engine;
+  const trailProfile = cosmetics.trail.id === 'ion'
+    ? { ...cosmetics.trail, palette: shipEnginePal }
+    : cosmetics.trail;
+
+  G.shipTint = cosmetics.color.id === 'ship'
+    ? [1, 1, 1]
+    : cosmetics.color.rgb;
+  G.engineCol = engineProfile.color;
+  G.enginePal = trailProfile.palette;
+  G.trailProfile = trailProfile;
+  G.engineProfile = engineProfile;
+  G.trailStyle = cosmetics.trail.id;
+  G.engineStyle = cosmetics.engine.id;
+  G.victoryStyle = cosmetics.victory.id;
 
   Object.assign(G, {
     score: 0,
@@ -5403,6 +5586,58 @@ function updateBoss(e, dt) {
   }
 }
 
+function playVictoryEffect(x, y) {
+  const effect = cosmeticList('victories').find(item => item.id === G.victoryStyle)
+    || cosmeticList('victories')[0];
+  const colors = effect.colors;
+
+  if (effect.id === 'fireworks') {
+    for (let i = 0; i < 5; i++) {
+      burst(x + rand(-120, 120), y + rand(-60, 70), {
+        n: 22,
+        spd: 170,
+        spdV: 170,
+        life: 0.9,
+        size: 8,
+        cols: colors,
+        drag: 0.9
+      });
+    }
+  } else if (effect.id === 'crown') {
+    burst(x, y - 34, {
+      n: 44,
+      ang: Math.PI,
+      arc: Math.PI,
+      spd: 260,
+      spdV: 120,
+      life: 1.1,
+      size: 10,
+      cols: colors,
+      drag: 0.9
+    });
+  } else if (effect.id === 'dread') {
+    burst(x, y, {
+      n: 110,
+      spd: 360,
+      spdV: 260,
+      life: 1.2,
+      size: 13,
+      cols: colors,
+      drag: 0.86
+    });
+  } else {
+    burst(x, y, {
+      n: 60,
+      spd: 260,
+      spdV: 180,
+      life: 0.9,
+      size: 9,
+      cols: colors,
+      drag: 0.89
+    });
+  }
+}
+
 function bossDeath(e) {
   G.hitStop = Math.max(G.hitStop, 0.16);
 
@@ -5447,6 +5682,8 @@ function bossDeath(e) {
     cols: [PAL.white, PAL.amber, PAL.surge, PAL.crimson],
     drag: 0.88
   });
+
+  playVictoryEffect(e.x, e.y);
 
   const types = ['triple', 'rapid', 'shield', 'seeker'];
 
@@ -5915,20 +6152,30 @@ function updatePlayer(dt) {
     AU.shoot();
   }
 
-  for (let i = 0; i < 2; i++) {
-    const c = G.enginePal[(Math.random() * G.enginePal.length) | 0];
+  const trail = G.trailProfile || COSMETICS.trails[0];
+  const engine = G.engineProfile || COSMETICS.engines[0];
+  const trailCount = trail.count || 2;
+  const trailPower = (trail.speed || 1) * (engine.trailPower || 1);
+  const trailIntensity = (trail.intensity || 1) * (engine.id === 'pulse'
+    ? 1 + Math.sin(G.time * engine.pulseSpeed) * 0.24
+    : 1);
+
+  for (let i = 0; i < trailCount; i++) {
+    const c = trail.palette[(Math.random() * trail.palette.length) | 0];
+    const life = trail.life || [.22, .45];
+    const size = trail.size || [6, 10];
 
     pushP(
       p.x + rand(-5, 5),
       p.y + 30,
       p.vx * -0.3 + rand(-16, 16),
-      rand(130, 220),
+      rand(130, 220) * trailPower,
       c[0],
       c[1],
       c[2],
-      1.4,
-      rand(0.22, 0.45),
-      rand(6, 10),
+      1.4 * trailIntensity,
+      rand(life[0], life[1]) * trailPower,
+      rand(size[0], size[1]) * (engine.trailPower || 1),
       0.88
     );
   }
@@ -6884,10 +7131,16 @@ function buildScene() {
   /* Player */
   if (p.alive && (p.inv <= 0 || Math.floor(t * 28) % 2 === 0)) {
     const ec = G.engineCol;
+    const engine = G.engineProfile || COSMETICS.engines[0];
+    const tint = G.shipTint || [1, 1, 1];
+    const enginePulse = 1 + Math.sin(t * (engine.pulseSpeed || 40)) * (engine.pulseAmount || .06);
+    const engineSize = (engine.glowSize || 56) * enginePulse;
+    const coreSize = (engine.coreSize || 34) * enginePulse;
+    const engineAlpha = engine.alpha || .45;
 
     if (G.surgeActive) {
-      glow(p.x, p.y + 22, 70, 1, 0.3, 1, 0.6);
-      glow(p.x, p.y + 31, 44 + Math.sin(t * 50) * 8, 1, 0.5, 1, 0.8);
+      glow(p.x, p.y + 22, engineSize * 1.28, 1, 0.3, 1, Math.min(0.85, engineAlpha + 0.2));
+      glow(p.x, p.y + 31, coreSize * 1.28 + Math.sin(t * 50) * 8, 1, 0.5, 1, 0.8);
 
       push(
         instN,
@@ -6898,13 +7151,14 @@ function buildScene() {
         82,
         82,
         1,
-        1,
-        0.7,
-        1
+        tint[0],
+        tint[1] * 0.7,
+        tint[2]
       );
     } else {
-      glow(p.x, p.y + 22, 56, ec[0], ec[1], ec[2], 0.45);
-      glow(p.x, p.y + 31, 34 + Math.sin(t * 40) * 6, 1, 1, 1, 0.7);
+      glow(p.x, p.y + 22, engineSize, ec[0], ec[1], ec[2], engineAlpha);
+      glow(p.x, p.y + 31, coreSize + Math.sin(t * (engine.pulseSpeed || 40)) * 6, 1, 1, 1, 0.7);
+      glow(p.x, p.y + 31, coreSize * 0.62, ec[0], ec[1], ec[2], engineAlpha * 0.78);
 
       push(
         instN,
@@ -6915,9 +7169,9 @@ function buildScene() {
         74,
         74,
         1,
-        1,
-        1,
-        1
+        tint[0],
+        tint[1],
+        tint[2]
       );
     }
 
@@ -7598,6 +7852,22 @@ $('dailyPrompt').addEventListener('click', () => {
   }
 });
 
+$('installPrompt').addEventListener('click', async e => {
+  e.currentTarget.blur();
+  if (!deferredInstallPrompt) return;
+
+  const promptEvent = deferredInstallPrompt;
+  deferredInstallPrompt = null;
+  setInstallPromptVisible(false);
+
+  try {
+    await promptEvent.prompt();
+    await promptEvent.userChoice;
+  } catch {
+    /* The browser owns the install dialog and may dismiss it without a result. */
+  }
+});
+
 $('hangarBtn').addEventListener('click', e => {
   AU.ensure();
   openHangar();
@@ -7747,6 +8017,7 @@ function frame(ts) {
 
 (async () => {
   try {
+    registerOfflineShell();
     resize();
 
     const atlasCanvas = buildAtlas();

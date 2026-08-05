@@ -154,6 +154,10 @@ function makeHarness() {
       WAVE_EVENTS,
       BOSS_PHASES,
       BOSS_VARIANTS,
+      COSMETICS,
+      equippedCosmetics,
+      equipCosmetic,
+      playVictoryEffect,
       AU,
       COMPUTE_WGSL,
       PART_WGSL,
@@ -192,6 +196,8 @@ function makeHarness() {
       nearestEnemy,
       updateWorld,
       updatePlayer,
+      update,
+      buildScene,
       pointer,
       keys,
       toggleSetting,
@@ -788,6 +794,50 @@ test('temporary run upgrades reset on the next deployment', () => {
   assert.equal(api.G.runXp, 0);
   assert.equal(api.G.surgeDuration, 5);
   assert.equal(Object.keys(api.G.runUpgrades).length, 0);
+});
+
+test('cosmetics are grouped, achievement-gated, and persisted when equipped', () => {
+  const { api, context } = makeHarness();
+  const categories = Object.keys(api.COSMETICS);
+
+  assert.deepEqual(categories, ['colors', 'trails', 'engines', 'victories']);
+  assert.equal(api.equippedCosmetics().color.id, 'ship');
+  assert.equal(api.equipCosmetic('colors', 'crimson'), false);
+
+  api.META.achievements.firstKill = true;
+  assert.equal(api.equipCosmetic('colors', 'crimson'), true);
+  assert.equal(api.equippedCosmetics().color.id, 'crimson');
+
+  const saved = JSON.parse(context.localStorage.getItem('ionstorm.meta'));
+  assert.equal(saved.cosmetics.colors, 'crimson');
+  assert.ok(api.COSMETICS.trails.some(item => item.requires === 'bossKill'));
+});
+
+test('selected cosmetics feed the run visual state and victory effects', () => {
+  const { api } = makeHarness();
+  api.META.achievements.firstKill = true;
+  api.META.achievements.bossKill = true;
+  api.equipCosmetic('colors', 'crimson');
+  api.equipCosmetic('trails', 'nova');
+  api.equipCosmetic('engines', 'nova');
+  api.equipCosmetic('victories', 'dread');
+  api.resetRun('standard');
+
+  assert.deepEqual(Array.from(api.G.shipTint), [1, .42, .32]);
+  assert.equal(api.G.trailStyle, 'nova');
+  assert.equal(api.G.engineStyle, 'nova');
+  assert.equal(api.G.victoryStyle, 'dread');
+  assert.doesNotThrow(() => api.playVictoryEffect(100, 100));
+});
+
+test('cosmetic visuals remain safe in the live simulation and scene builder', () => {
+  const { api } = makeHarness();
+
+  api.resize();
+  api.resetRun();
+
+  assert.doesNotThrow(() => api.update(0.016));
+  assert.doesNotThrow(() => api.buildScene());
 });
 
 test('unmuting resynchronizes procedural music instead of catching up', () => {
