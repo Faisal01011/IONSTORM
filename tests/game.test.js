@@ -185,6 +185,12 @@ function makeHarness() {
       bossCombatProfile,
       spawnBoss,
       updateBoss,
+      spawnBossRelays,
+      damageBossRelay,
+      bossRelayDestroyed,
+      bossRelayBreak,
+      bossRelayFailure,
+      updateBossRelays,
       damageBoss,
       eliteChance,
       applyEliteModifier,
@@ -297,9 +303,9 @@ test('Dreadnoughts expose four distinct escalating phase profiles', () => {
   const { api } = makeHarness();
 
   assert.equal(api.bossPhaseForHealth(0.9), 1);
-  assert.equal(api.bossPhaseForHealth(0.75), 2);
-  assert.equal(api.bossPhaseForHealth(0.5), 3);
-  assert.equal(api.bossPhaseForHealth(0.25), 4);
+  assert.equal(api.bossPhaseForHealth(0.7), 2);
+  assert.equal(api.bossPhaseForHealth(0.4), 3);
+  assert.equal(api.bossPhaseForHealth(0.15), 4);
   assert.equal(api.bossPhaseProfile(1).name, 'HUNTER');
   assert.equal(api.bossPhaseProfile(2).attack, 'SPIRAL LANCE');
   assert.equal(api.bossPhaseProfile(4).name, 'MELTDOWN');
@@ -357,6 +363,68 @@ test('later boss phases combine stronger pressure with tighter counterfire windo
   assert.ok(final.coreWindow < early.coreWindow);
 });
 
+test('boss rage makes the same phase faster, harder, and less forgiving', () => {
+  const { api } = makeHarness();
+  const calm = api.bossCombatProfile({ tier: 4, phase: 4, rage: 0 });
+  const enraged = api.bossCombatProfile({ tier: 4, phase: 4, rage: 0.7 });
+
+  assert.ok(enraged.cooldown < calm.cooldown);
+  assert.ok(enraged.telegraph < calm.telegraph);
+  assert.ok(enraged.coreWindow < calm.coreWindow);
+  assert.ok(enraged.move > calm.move);
+  assert.ok(enraged.damageMultiplier > calm.damageMultiplier);
+  assert.ok(enraged.damageTakenMultiplier < calm.damageTakenMultiplier);
+});
+
+test('reactor relays create a break-or-overload boss decision', () => {
+  const { api } = makeHarness();
+
+  api.resize();
+  api.resetRun();
+  api.G.wave = 5;
+  api.G.enemies.length = 0;
+  api.spawnBoss();
+
+  const boss = api.G.enemies[0];
+  boss.y = 150;
+  boss.entered = true;
+  boss.phaseTransitionT = 0;
+
+  assert.equal(api.spawnBossRelays(boss), true);
+  assert.equal(boss.relayActive, true);
+  assert.equal(api.G.bossNodes.length, 2);
+  assert.equal(boss.relayRemaining, 2);
+  assert.doesNotThrow(() => api.buildScene());
+
+  const nodes = [...api.G.bossNodes];
+
+  for (const node of nodes) {
+    while (node.hp > 0) {
+      api.damageBossRelay(node, 1);
+    }
+  }
+
+  assert.equal(api.G.bossNodes.length, 0);
+  assert.equal(boss.relayActive, false);
+  assert.ok(boss.staggerT > 0);
+  assert.ok(api.G.surge > 0);
+
+  boss.staggerT = 0;
+  boss.coreOpen = false;
+  api.spawnBossRelays(boss);
+  api.bossRelayFailure(boss);
+
+  assert.equal(boss.relayActive, false);
+  assert.equal(boss.pendingAttack, 'overload');
+  assert.ok(boss.overloadCount > 0);
+  assert.ok(boss.rage > 0);
+  assert.ok(boss.telegraphT > 0);
+
+  api.G.ebullets.length = 0;
+  api.updateBoss(boss, boss.telegraphT + 0.02);
+  assert.ok(api.G.ebullets.length > 0);
+});
+
 test('boss impact pressure is applied as a capped heavy hit', () => {
   const { api } = makeHarness();
 
@@ -393,7 +461,7 @@ test('boss phase shifts are protected and attacks are telegraphed before firing'
   const boss = api.G.enemies[0];
   boss.y = 150;
   boss.entered = true;
-  boss.hp = boss.maxHp * 0.74;
+  boss.hp = boss.maxHp * 0.69;
   boss.attackT = 10;
 
   api.updateBoss(boss, 0.016);

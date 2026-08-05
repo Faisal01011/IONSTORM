@@ -776,16 +776,30 @@ button.cham:disabled {
 }
 
 #bossStatus {
+  flex: 0 0 auto;
+  max-width: 48%;
+  overflow: hidden;
   color: rgba(255, 180, 84, .88);
+  text-overflow: ellipsis;
   transition: color .2s, text-shadow .2s;
+  white-space: nowrap;
 }
 
 #bossAttack {
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   color: var(--dim);
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+#bossRage {
+  flex: 0 0 auto;
+  color: rgba(255, 112, 94, .88);
+  text-align: right;
+  text-shadow: 0 0 9px rgba(255, 92, 71, .3);
 }
 
 #boss.coreOpen {
@@ -816,6 +830,26 @@ button.cham:disabled {
 #boss.phaseShift #bossStatus {
   color: var(--amber);
   text-shadow: 0 0 10px rgba(255, 180, 84, .55);
+}
+
+#boss.relay #bossStatus {
+  color: var(--cyan);
+  text-shadow: 0 0 10px rgba(95, 242, 255, .55);
+}
+
+#boss.relay {
+  border-color: rgba(95, 242, 255, .72);
+  box-shadow: 0 0 30px rgba(95, 242, 255, .2);
+}
+
+#boss.relay.telegraph {
+  border-color: rgba(255, 92, 71, .76);
+  box-shadow: 0 0 30px rgba(255, 92, 71, .24);
+}
+
+#boss.relay.telegraph #bossStatus {
+  color: #ff8f7d;
+  text-shadow: 0 0 10px rgba(255, 92, 71, .55);
 }
 
 #chips {

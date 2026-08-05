@@ -544,57 +544,58 @@ const WAVE_EVENTS = {
 };
 
 /* Dreadnought phase profiles are the readable base kit shared by every
-   encounter. Encounter tiers below them keep later boss waves from becoming
-   a copy of wave 5: each Mk gains hull, pressure, faster patterns, more
+   encounter. The health bands are intentionally uneven: the last two phases
+   arrive earlier so a pilot cannot coast through the same four attacks on
+   every boss. Encounter tiers below them add pressure, faster patterns, more
    reinforcements, and a different attack doctrine while the same telegraph /
    counterfire language remains intact. */
 const BOSS_PHASES = {
   1: {
     name: 'HUNTER',
-    threshold: 0.75,
+    threshold: 0.7,
     attack: 'AIMED BARRAGE',
-    telegraph: 0.55,
-    cooldown: 1.35,
-    coreWindow: 0.72,
+    telegraph: 0.52,
+    cooldown: 1.22,
+    coreWindow: 0.62,
     coreMultiplier: 1.28,
-    addInterval: 8.4,
-    move: 0.34
+    addInterval: 7.2,
+    move: 0.44
   },
 
   2: {
     name: 'SIEGE',
-    threshold: 0.5,
+    threshold: 0.4,
     attack: 'SPIRAL LANCE',
-    telegraph: 0.72,
-    cooldown: 1.58,
-    coreWindow: 0.82,
+    telegraph: 0.56,
+    cooldown: 1.14,
+    coreWindow: 0.58,
     coreMultiplier: 1.44,
-    addInterval: 6.6,
-    move: 0.42
+    addInterval: 5.5,
+    move: 0.56
   },
 
   3: {
     name: 'BREACH',
-    threshold: 0.25,
+    threshold: 0.15,
     attack: 'BREACH WALL',
-    telegraph: 0.62,
-    cooldown: 1.18,
-    coreWindow: 0.64,
+    telegraph: 0.46,
+    cooldown: 0.94,
+    coreWindow: 0.48,
     coreMultiplier: 1.58,
-    addInterval: 5.35,
-    move: 0.56
+    addInterval: 4.1,
+    move: 0.72
   },
 
   4: {
     name: 'MELTDOWN',
     threshold: 0,
     attack: 'CORE MELTDOWN',
-    telegraph: 0.5,
-    cooldown: 0.92,
-    coreWindow: 0.48,
+    telegraph: 0.38,
+    cooldown: 0.7,
+    coreWindow: 0.34,
     coreMultiplier: 1.72,
-    addInterval: 4.5,
-    move: 0.68
+    addInterval: 3.1,
+    move: 0.9
   }
 };
 
@@ -652,21 +653,24 @@ function bossEncounterProfile(tier = 1) {
     style: variant.style,
 
     /* Hull growth is deliberately nonlinear after the second encounter. */
-    hpMultiplier: (1 + step * 0.3 + Math.min(0.32, step * step * 0.012)) *
+    hpMultiplier: (1 + step * 0.4 + Math.min(0.5, step * step * 0.02)) *
       (daily?.bossHpMultiplier || 1),
-    damageMultiplier: 1 + Math.min(0.8, step * 0.12),
-    damageTakenMultiplier: Math.max(0.84, 1 - step * 0.04) *
+    damageMultiplier: 1 + Math.min(1.05, step * 0.16),
+    damageTakenMultiplier: Math.max(0.74, 1 - step * 0.065) *
       (daily?.bossDamageTakenMultiplier || 1),
-    cooldownMultiplier: Math.max(0.67, 1 - step * 0.055) *
+    cooldownMultiplier: Math.max(0.62, 1 - step * 0.065) *
       (daily?.bossCooldownMultiplier || 1),
-    telegraphMultiplier: Math.max(0.74, 1 - step * 0.03) *
+    telegraphMultiplier: Math.max(0.7, 1 - step * 0.04) *
       (daily?.bossTelegraphMultiplier || 1),
-    projectileSpeedMultiplier: 1 + Math.min(0.42, step * 0.06),
-    moveMultiplier: 1 + Math.min(0.4, step * 0.06),
-    addIntervalMultiplier: Math.max(0.58, 1 - step * 0.08),
-    addCount: 1 + Math.min(2, Math.floor(step / 2)),
-    coreWindowMultiplier: Math.max(0.62, 1 - step * 0.07),
-    extraProjectiles: Math.min(4, Math.floor(step / 2))
+    projectileSpeedMultiplier: 1 + Math.min(0.5, step * 0.07),
+    moveMultiplier: 1 + Math.min(0.55, step * 0.08),
+    addIntervalMultiplier: Math.max(0.5, 1 - step * 0.09),
+    addCount: 1 + Math.min(3, Math.floor(step / 2)),
+    coreWindowMultiplier: Math.max(0.54, 1 - step * 0.085),
+    extraProjectiles: Math.min(5, Math.floor(step / 2)),
+    relayCount: 2 + Math.min(2, Math.floor(step / 2)),
+    relayInterval: Math.max(3.8, 6.2 - step * 0.3),
+    relayDuration: Math.max(3.4, 5.2 - step * 0.22)
   };
 }
 
@@ -675,19 +679,39 @@ function bossCombatProfile(e = {}) {
   const phase = bossPhaseProfile(phaseNumber);
   const encounter = bossEncounterProfile(e.tier || 1);
   const phaseStep = phaseNumber - 1;
+  const rage = clamp(Number(e.rage) || 0, 0, 0.85);
 
   return {
     ...phase,
-    cooldown: phase.cooldown * encounter.cooldownMultiplier,
-    telegraph: phase.telegraph * encounter.telegraphMultiplier,
-    coreWindow: Math.max(0.28, phase.coreWindow * encounter.coreWindowMultiplier),
-    addInterval: phase.addInterval * encounter.addIntervalMultiplier,
-    move: phase.move * encounter.moveMultiplier,
-    damageMultiplier: encounter.damageMultiplier * (1 + phaseStep * 0.06),
-    damageTakenMultiplier: encounter.damageTakenMultiplier * Math.max(0.82, 1 - phaseStep * 0.04),
+    rage,
+    cooldown: Math.max(
+      0.36,
+      phase.cooldown * encounter.cooldownMultiplier * (1 - rage * 0.18)
+    ),
+    telegraph: Math.max(
+      0.22,
+      phase.telegraph * encounter.telegraphMultiplier * (1 - rage * 0.12)
+    ),
+    coreWindow: Math.max(
+      0.18,
+      phase.coreWindow * encounter.coreWindowMultiplier * (1 - rage * 0.16)
+    ),
+    addInterval: Math.max(
+      2.2,
+      phase.addInterval * encounter.addIntervalMultiplier * (1 - rage * 0.12)
+    ),
+    move: phase.move * encounter.moveMultiplier * (1 + rage * 0.2),
+    damageMultiplier: encounter.damageMultiplier *
+      (1 + phaseStep * 0.08) * (1 + rage * 0.24),
+    damageTakenMultiplier: encounter.damageTakenMultiplier *
+      Math.max(0.76, 1 - phaseStep * 0.045 - rage * 0.07),
     projectileSpeedMultiplier: encounter.projectileSpeedMultiplier,
     addCount: encounter.addCount,
     extraProjectiles: encounter.extraProjectiles,
+    relayCount: encounter.relayCount + Math.min(1, phaseStep > 1 ? 1 : 0),
+    relayInterval: encounter.relayInterval,
+    relayDuration: encounter.relayDuration,
+    tier: encounter.tier,
     variantId: encounter.variantId,
     variantName: encounter.variantName,
     style: encounter.style
@@ -1039,6 +1063,7 @@ const G = {
   /* World objects */
   bullets: [],
   ebullets: [],
+  bossNodes: [],
   enemies: [],
   powerups: [],
   rings: [],
@@ -4967,6 +4992,7 @@ function resetRun(runMode = G.runMode) {
 
   G.bullets.length = 0;
   G.ebullets.length = 0;
+  G.bossNodes.length = 0;
   G.enemies.length = 0;
   G.powerups.length = 0;
   G.rings.length = 0;
@@ -5485,6 +5511,193 @@ function bossWall(e) {
   }
 }
 
+/* Boss relays turn the exposed-core window into an active decision instead of
+   a passive damage phase. The pilot can break the orbiting nodes for a safe
+   stagger, or keep firing the hull and accept the telegraphed overload. */
+function clearBossRelays(e) {
+  for (let i = G.bossNodes.length - 1; i >= 0; i--) {
+    if (G.bossNodes[i].boss === e) {
+      G.bossNodes.splice(i, 1);
+    }
+  }
+
+  e.relayActive = false;
+  e.relayTimer = 0;
+  e.relayRemaining = 0;
+  e.relayTotal = 0;
+}
+
+function spawnBossRelays(e) {
+  if (!e.entered || e.phaseTransitionT > 0 || e.relayActive) return false;
+
+  const profile = bossCombatProfile(e);
+  const count = clamp(Math.round(profile.relayCount || 2), 2, 5);
+  const nodeHp = 2 +
+    Math.min(3, Math.floor(Math.max(0, (e.tier || 1) - 1) / 2)) +
+    (e.phase >= 3 ? 1 : 0);
+
+  clearBossRelays(e);
+
+  e.relayActive = true;
+  e.relayTotal = count;
+  e.relayRemaining = count;
+  e.relayTimer = profile.relayDuration;
+  e.relayT = profile.relayInterval;
+
+  for (let k = 0; k < count; k++) {
+    const direction = k % 2 === 0 ? 1 : -1;
+
+    G.bossNodes.push({
+      boss: e,
+      angle: TAU * k / count + e.t * 0.1,
+      orbit: 142 + (k % 2) * 24 + e.phase * 4,
+      orbitY: 0.58 + (k % 2) * 0.06,
+      orbitSpeed: direction * (0.72 + e.phase * 0.08 + (e.tier || 1) * 0.02),
+      x: e.x,
+      y: e.y,
+      r: 19,
+      hp: nodeHp,
+      maxHp: nodeHp,
+      flash: 0
+    });
+  }
+
+  toast('REACTOR RELAYS EXPOSED', 'gold');
+  banner('BREAK THE RELAYS');
+  return true;
+}
+
+function bossRelayDestroyed(node) {
+  const e = node && node.boss;
+
+  if (!e || !e.relayActive) return false;
+
+  const index = G.bossNodes.indexOf(node);
+
+  if (index < 0) return false;
+
+  G.bossNodes.splice(index, 1);
+  e.relayRemaining = Math.max(0, e.relayRemaining - 1);
+  G.score += Math.round(180 * (e.tier || 1));
+  G.surge = Math.min(100, G.surge + 7 * G.surgeMult);
+
+  if (G.score > G.hi) {
+    G.hi = G.score;
+  }
+
+  G.rings.push({
+    x: node.x,
+    y: node.y,
+    r: 12,
+    vr: 440,
+    a: 0.9
+  });
+
+  burst(node.x, node.y, {
+    n: 16,
+    spd: 180,
+    spdV: 100,
+    life: 0.48,
+    size: 7,
+    cols: [PAL.cyan, PAL.white, PAL.surge],
+    drag: 0.89
+  });
+
+  toast(
+    e.relayRemaining > 0
+      ? 'RELAY BROKEN · ' + e.relayRemaining + ' LEFT'
+      : 'RELAY NETWORK COLLAPSED',
+    'gold'
+  );
+
+  if (e.relayRemaining === 0) {
+    bossRelayBreak(e);
+  }
+
+  return true;
+}
+
+function damageBossRelay(node, amount) {
+  if (!node || !node.boss || node.hp <= 0) return false;
+
+  const dealt = Math.max(0, Number(amount) || 0);
+  node.hp -= dealt;
+  node.flash = 1;
+  G.damageDealt += dealt;
+
+  if (node.hp <= 0) {
+    return bossRelayDestroyed(node);
+  }
+
+  return false;
+}
+
+function bossRelayBreak(e) {
+  if (!e || !e.relayActive) return;
+
+  const profile = bossCombatProfile(e);
+
+  clearBossRelays(e);
+  e.staggerT = Math.max(1.35, 1.65 - (e.tier || 1) * 0.04);
+  e.coreOpen = true;
+  e.coreOpenT = e.staggerT;
+  e.attackT = profile.cooldown + e.staggerT + 0.55;
+  e.telegraphT = 0;
+  e.pendingAttack = null;
+
+  G.ebullets.length = 0;
+  G.surge = Math.min(100, G.surge + 18 * G.surgeMult);
+  G.score += 500 * (e.tier || 1);
+
+  if (G.score > G.hi) {
+    G.hi = G.score;
+  }
+
+  awardRunXp(45 + (e.tier || 1) * 12);
+  AU.boom(1.2, e.x);
+  toast('DREADNOUGHT STAGGERED · COUNTERFIRE', 'surge');
+  banner('RELAY BREAK');
+}
+
+function bossRelayFailure(e) {
+  if (!e || !e.relayActive) return;
+
+  const profile = bossCombatProfile(e);
+
+  clearBossRelays(e);
+  e.overloadCount = (e.overloadCount || 0) + 1;
+  e.rage = clamp((e.rage || 0) + 0.14, 0, 0.85);
+  e.pendingAttack = 'overload';
+  e.telegraphT = Math.max(0.26, profile.telegraph * 0.8);
+  e.attackName = profile.variantName + ' · RELAY OVERLOAD';
+  e.coreOpen = false;
+  e.coreOpenT = 0;
+  e.attackT = Math.min(e.attackT, profile.cooldown * 0.55);
+  e.relayT = profile.relayInterval * 0.62;
+
+  G.ebullets.length = 0;
+  spawnBossAdd(e, 1 + Math.min(2, profile.addCount));
+  toast('RELAY FAILURE · BOSS ENRAGED', 'red');
+  banner('REACTOR OVERLOAD');
+}
+
+function updateBossRelays(dt) {
+  for (let i = G.bossNodes.length - 1; i >= 0; i--) {
+    const node = G.bossNodes[i];
+    const e = node.boss;
+
+    if (!e || !e.relayActive) {
+      G.bossNodes.splice(i, 1);
+      continue;
+    }
+
+    node.angle += node.orbitSpeed * dt;
+    node.flash = Math.max(0, node.flash - dt * 5);
+    node.x = e.x + Math.cos(node.angle) * node.orbit;
+    node.y = e.y + Math.sin(node.angle) * node.orbit * node.orbitY;
+  }
+}
+
 function spawnBossAdd(e, count = 1) {
   const eliteChanceForAdds = Math.min(
     0.32,
@@ -5544,6 +5757,11 @@ function bossPhaseFX(e) {
   e.coreOpen = false;
   e.attackT = profile.cooldown;
   e.addT = profile.addInterval;
+  e.relayT = Math.min(2.8, profile.relayInterval * 0.55);
+  e.staggerT = 0;
+  e.pendingAttack = null;
+  e.rage = Math.max(e.rage || 0, (e.phase - 1) * 0.14);
+  clearBossRelays(e);
   e.attackName = 'PHASE SHIFT';
 
   /* A phase change is a readable reset point. Clearing the old pattern keeps
@@ -5579,7 +5797,7 @@ function bossPhaseFX(e) {
 function spawnBoss() {
   const lvl = Math.max(1, Math.floor(G.wave / 5));
   const encounter = bossEncounterProfile(lvl);
-  const hp = Math.round((170 + lvl * 95) * encounter.hpMultiplier);
+  const hp = Math.round((260 + lvl * 125) * encounter.hpMultiplier);
 
   G.enemies.push({
     type: 'boss',
@@ -5591,8 +5809,10 @@ function spawnBoss() {
     telegraphT: 0,
     coreOpenT: 0,
     phaseTransitionT: 0,
+    staggerT: 0,
     coreOpen: false,
     attackName: BOSS_PHASES[1].attack,
+    pendingAttack: null,
 
     hp,
     maxHp: hp,
@@ -5606,6 +5826,14 @@ function spawnBoss() {
     phase: 1,
     pattern: 0,
     spiralA: 0,
+    attackCount: 0,
+    overloadCount: 0,
+    rage: 0,
+    relayT: 3.2,
+    relayTimer: 0,
+    relayActive: false,
+    relayRemaining: 0,
+    relayTotal: 0,
     addT: BOSS_PHASES[1].addInterval * encounter.addIntervalMultiplier,
     entered: false
   });
@@ -5616,12 +5844,37 @@ function beginBossAttack(e) {
 
   e.telegraphT = profile.telegraph;
   e.attackName = profile.variantName + ' · ' + profile.attack;
+  e.pendingAttack = 'standard';
   e.coreOpen = false;
   e.coreOpenT = 0;
 }
 
+function fireBossOverload(e) {
+  const profile = bossCombatProfile(e);
+  const pressure = profile.extraProjectiles + 1;
+
+  bossWall(e);
+  bossSpiral(e, 5 + pressure);
+  bossAimedSpread(e, 7 + pressure * 2, Math.max(0.08, 0.15 - pressure * 0.008));
+  bossCrossfire(e, 3 + pressure);
+  spawnBossAdd(e, 1 + Math.min(2, profile.addCount));
+
+  e.telegraphT = 0;
+  e.coreOpen = true;
+  e.coreOpenT = Math.max(0.18, profile.coreWindow * 0.68);
+  e.attackT = Math.max(0.36, profile.cooldown * 0.7);
+  e.pendingAttack = null;
+}
+
 function fireBossAttack(e) {
   const profile = bossCombatProfile(e);
+  e.attackCount = (e.attackCount || 0) + 1;
+
+  if (e.pendingAttack === 'overload') {
+    fireBossOverload(e);
+    return;
+  }
+
   const pressure = profile.extraProjectiles;
   const cycle = e.pattern % 4;
 
@@ -5633,12 +5886,20 @@ function fireBossAttack(e) {
     if (profile.style === 'spiral' || (profile.style === 'mixed' && cycle === 0)) {
       bossSpiral(e, 2 + pressure);
     }
+
+    if (profile.rage > 0.22 || profile.tier >= 3) {
+      bossCrossfire(e, 2 + pressure);
+    }
   } else if (e.phase === 2) {
     bossSpiral(e, 4 + pressure);
     bossAimedSpread(e, 3 + pressure, 0.24);
 
     if (profile.style === 'lane' || (profile.style === 'mixed' && cycle === 1)) {
       bossCrossfire(e, 2 + pressure);
+    }
+
+    if (profile.rage > 0.28) {
+      bossWall(e);
     }
   } else if (e.phase === 3) {
     if (profile.style === 'spiral' || (profile.style === 'mixed' && cycle === 2)) {
@@ -5649,6 +5910,10 @@ function fireBossAttack(e) {
     } else {
       bossAimedSpread(e, 7 + pressure * 2, Math.max(0.1, 0.16 - pressure * 0.01));
     }
+
+    if (profile.rage > 0.34) {
+      bossCrossfire(e, 2 + pressure);
+    }
   } else if (profile.style === 'swarm') {
     bossWall(e);
     bossAimedSpread(e, 5 + pressure * 2, 0.18);
@@ -5656,10 +5921,13 @@ function fireBossAttack(e) {
   } else if (cycle % 3 === 0) {
     bossWall(e);
     bossAimedSpread(e, 3 + pressure, 0.28);
+    bossCrossfire(e, 2 + pressure);
   } else if (cycle % 3 === 1) {
     bossSpiral(e, 5 + pressure);
+    bossAimedSpread(e, 5 + pressure, 0.18);
   } else {
     bossAimedSpread(e, 9 + pressure * 2, Math.max(0.08, 0.12 - pressure * 0.008));
+    bossWall(e);
 
     if (profile.style === 'lane' || profile.style === 'mixed') {
       bossCrossfire(e, 2 + pressure);
@@ -5670,6 +5938,7 @@ function fireBossAttack(e) {
   e.coreOpen = true;
   e.coreOpenT = profile.coreWindow;
   e.attackT = profile.cooldown;
+  e.pendingAttack = null;
 }
 
 function updateBoss(e, dt) {
@@ -5705,6 +5974,17 @@ function updateBoss(e, dt) {
     bossPhaseFX(e);
   }
 
+  e.rage = Math.max(
+    e.rage || 0,
+    clamp(
+      (e.phase - 1) * 0.14 +
+        Math.min(0.34, (e.attackCount || 0) * 0.022) +
+        Math.min(0.24, (e.overloadCount || 0) * 0.12),
+      0,
+      0.85
+    )
+  );
+
   if (e.phaseTransitionT > 0) {
     e.phaseTransitionT = Math.max(0, e.phaseTransitionT - dt);
     e.coreOpen = false;
@@ -5712,7 +5992,28 @@ function updateBoss(e, dt) {
     return;
   }
 
+  if (e.staggerT > 0) {
+    e.staggerT = Math.max(0, e.staggerT - dt);
+    e.coreOpen = true;
+    e.coreOpenT = e.staggerT;
+    return;
+  }
+
   if (e.entered && G.state === 'playing' && p.alive) {
+    if (e.relayActive) {
+      e.relayTimer -= dt;
+
+      if (e.relayTimer <= 0) {
+        bossRelayFailure(e);
+      }
+    } else {
+      e.relayT -= dt;
+
+      if (e.relayT <= 0) {
+        spawnBossRelays(e);
+      }
+    }
+
     if (e.telegraphT > 0) {
       e.telegraphT -= dt;
 
@@ -5797,6 +6098,7 @@ function playVictoryEffect(x, y) {
 }
 
 function bossDeath(e) {
+  clearBossRelays(e);
   G.hitStop = Math.max(G.hitStop, 0.16);
 
   G.shake = Math.min(
@@ -6643,6 +6945,11 @@ function updateWorld(dt) {
     }
   }
 
+  /* Rotating reactor relays are boss-only targets and hazards. Their timer is
+     owned by updateBoss(); this pass keeps their orbit aligned with the boss
+     before the player collision pass runs. */
+  updateBossRelays(dt);
+
   /* Powerups */
   for (let i = G.powerups.length - 1; i >= 0; i--) {
     const u = G.powerups[i];
@@ -6771,6 +7078,43 @@ function updateWorld(dt) {
     for (let i = G.bullets.length - 1; i >= 0; i--) {
       const b = G.bullets[i];
       let hit = false;
+
+      for (let j = G.bossNodes.length - 1; j >= 0; j--) {
+        const node = G.bossNodes[j];
+
+        if (Math.hypot(b.x - node.x, b.y - node.y) < node.r + b.r) {
+          if (b.piercing && b.hitTargets?.has(node)) continue;
+
+          if (b.piercing) {
+            b.hitTargets ||= new Set();
+            b.hitTargets.add(node);
+          } else {
+            G.bullets.splice(i, 1);
+          }
+
+          hit = true;
+          G.shotsHit++;
+          const destroyed = damageBossRelay(node, projectileDamage(1));
+
+          burst(b.x, b.y, {
+            n: 6,
+            spd: 110,
+            life: 0.28,
+            size: 5,
+            cols: [PAL.cyan, PAL.surge, PAL.white],
+            inten: 1.2,
+            drag: 0.88
+          });
+
+          if (destroyed) {
+            G.shake = Math.min(G.shake + 2, 28);
+          }
+
+          break;
+        }
+      }
+
+      if (hit && !b.piercing) continue;
 
       for (let j = G.enemies.length - 1; j >= 0; j--) {
         const e = G.enemies[j];
@@ -7097,6 +7441,52 @@ function buildScene() {
       1,
       1,
       1,
+      1
+    );
+  }
+
+  /* Boss relay objectives orbit the Dreadnought and give the player a clear
+     visual target during the overload decision. */
+  for (const node of G.bossNodes) {
+    const pulse = 1 + Math.sin(t * 9 + node.angle * 2) * 0.12;
+    const damaged = 1 - node.hp / Math.max(node.maxHp, 1);
+    const flash = node.flash;
+
+    glow(
+      node.x,
+      node.y,
+      node.r * 3.6 * pulse,
+      0.35 + damaged * 0.65,
+      0.9,
+      1,
+      0.34 + flash * 0.45
+    );
+
+    push(
+      addN,
+      node.x,
+      node.y,
+      t * 1.5,
+      10,
+      node.r * 2.8 * pulse,
+      node.r * 2.8 * pulse,
+      0.5 + flash * 0.35,
+      0.35,
+      0.92,
+      1
+    );
+
+    push(
+      instN,
+      node.x,
+      node.y,
+      -t * 1.8,
+      19,
+      node.r * 1.7,
+      node.r * 1.7,
+      1,
+      0.72 + flash * 0.28,
+      0.86 + flash * 0.14,
       1
     );
   }
@@ -7716,6 +8106,8 @@ function hud(rdt) {
     const encounter = bossEncounterProfile(boss.tier);
     const phaseShift = boss.phaseTransitionT > 0;
     const telegraph = boss.telegraphT > 0;
+    const relayActive = boss.relayActive && boss.relayRemaining > 0;
+    const staggered = boss.staggerT > 0;
     const coreOpen = boss.coreOpen && !phaseShift;
 
     setTxt(
@@ -7730,6 +8122,8 @@ function hud(rdt) {
       $('bossStatus'),
       phaseShift ? 'PHASE SHIFT' :
         telegraph ? 'INCOMING — ' + boss.attackName :
+          staggered ? 'DREADNOUGHT STAGGERED' :
+          relayActive ? 'BREAK RELAYS ' + boss.relayRemaining + '/' + boss.relayTotal :
           coreOpen ? 'CORE EXPOSED' :
             'CORE SHIELDED'
     );
@@ -7737,8 +8131,12 @@ function hud(rdt) {
     setTxt(
       $('bossAttack'),
       phaseShift ? 'SYSTEM RECONFIGURATION' :
+        relayActive ? 'OVERLOAD IN ' + Math.max(0, Math.ceil(boss.relayTimer)) + 'S' :
+        staggered ? 'COUNTERFIRE WINDOW' :
         profile.variantName + ' · ' + profile.attack
     );
+
+    setTxt($('bossRage'), 'RAGE ' + Math.round(profile.rage * 100) + '%');
 
     $('bossBar').firstElementChild.style.width =
       (clamp(boss.hp / boss.maxHp, 0, 1) * 100) + '%';
@@ -7746,6 +8144,7 @@ function hud(rdt) {
     $('boss').classList.toggle('coreOpen', coreOpen);
     $('boss').classList.toggle('telegraph', telegraph);
     $('boss').classList.toggle('phaseShift', phaseShift);
+    $('boss').classList.toggle('relay', relayActive);
   }
 
   const p = G.player;
