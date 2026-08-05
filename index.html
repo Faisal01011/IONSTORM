@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>IONSTORM — WebGPU Arcade</title>
 
-  <meta name="description" content="IONSTORM — a neon WebGPU arcade shooter with boss fights, SURGE overdrive, asteroids, procedural music, and roguelite run upgrades.">
+  <meta name="description" content="IONSTORM — a neon WebGPU arcade shooter with escalating boss fights, daily seeded challenges, SURGE overdrive, and roguelite run upgrades.">
   <meta name="theme-color" content="#04070f">
 
   <meta property="og:title" content="IONSTORM — WebGPU Arcade">
@@ -47,7 +47,7 @@
     </div>
 
     <div class="hudbox panel hudmid hudwave">
-      <div class="lbl">WAVE</div>
+      <div class="lbl">WAVE <span id="hMode" class="hudMode hidden">DAILY</span></div>
       <div class="val" id="hWave">01</div>
     </div>
 
@@ -214,6 +214,25 @@
             <button type="button" class="cham secondary" id="hangarBtn">
               HANGAR
             </button>
+
+            <button type="button" class="cham dailyAction" id="dailyPrompt">
+              <span class="actionLabel">DAILY RUN</span>
+              <span class="actionHint desktopOnly">UTC SEEDED</span>
+              <span class="actionHint mobileOnly">TODAY'S RUN</span>
+            </button>
+          </div>
+
+          <div class="dailyBrief panel" aria-label="Daily challenge briefing">
+            <div class="dailyBriefTop">
+              <span>DAILY CHALLENGE</span>
+              <span id="dailyDate">— UTC</span>
+            </div>
+            <strong id="dailyName">SYNCING…</strong>
+            <p id="dailyDesc">Loading today's seeded combat profile.</p>
+            <div class="dailyBriefBest">
+              <span>LOCAL BEST</span>
+              <b id="dailyBest">—</b>
+            </div>
           </div>
 
           <div class="meta" role="group" aria-label="Pilot and mission status">
@@ -419,6 +438,11 @@
 
       <div id="newRec" class="hidden">★ NEW RECORD ★</div>
 
+      <div id="dailyResult" class="dailyResult hidden" aria-live="polite">
+        <span id="dailyResultDate">DAILY // —</span>
+        <span>LOCAL BEST <b id="sDailyBest">—</b></span>
+      </div>
+
       <div class="stats">
         <span class="lbl">FINAL SCORE</span>
         <span class="val" id="sScore">0</span>
@@ -442,9 +466,37 @@
         <span class="val" id="sTotalScrap">0</span>
       </div>
 
+      <div class="runBreakdown" aria-label="Run breakdown">
+        <div class="runMetric panel">
+          <span class="runMetricLabel">SURVIVAL</span>
+          <b id="sTime">00:00</b>
+        </div>
+        <div class="runMetric panel">
+          <span class="runMetricLabel">ACCURACY</span>
+          <b id="sAccuracy">0%</b>
+        </div>
+        <div class="runMetric panel">
+          <span class="runMetricLabel">DAMAGE</span>
+          <b id="sDamage">0</b>
+        </div>
+        <div class="runMetric panel">
+          <span class="runMetricLabel">ELITES</span>
+          <b id="sElites">0</b>
+        </div>
+        <div class="runMetric panel">
+          <span class="runMetricLabel">BOSSES</span>
+          <b id="sBosses">0</b>
+        </div>
+        <div class="runMetric panel">
+          <span class="runMetricLabel">SYSTEMS</span>
+          <b id="sSystems">0</b>
+        </div>
+      </div>
+
       <div class="overlayActions gameOverActions">
         <button type="button" class="cham" id="relaunchBtn">RELAUNCH</button>
         <button type="button" class="cham secondary" id="overHangarBtn">HANGAR</button>
+        <button type="button" class="cham secondary" id="shareScoreBtn">SHARE SCORE</button>
       </div>
       <p class="hint desktopOnly"><kbd>ENTER</kbd> RELAUNCH <span>·</span> <kbd>H</kbd> HANGAR</p>
     </div>

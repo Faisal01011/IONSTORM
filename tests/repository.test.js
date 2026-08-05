@@ -83,6 +83,37 @@ test('in-run progression exposes an accessible upgrade choice flow', () => {
   assert.match(GAME_SOURCE, /choices\.length < Math\.min\(3, ids\.length\)/);
 });
 
+test('daily challenges and post-run reporting have complete UI contracts', () => {
+  for (const id of [
+    'dailyPrompt',
+    'dailyDate',
+    'dailyName',
+    'dailyDesc',
+    'dailyBest',
+    'dailyResult',
+    'shareScoreBtn',
+    'sTime',
+    'sAccuracy',
+    'sDamage',
+    'sElites',
+    'sBosses',
+    'sSystems'
+  ]) {
+    assert.match(HTML, new RegExp(`id="${id}"`), `missing daily/reporting hook: ${id}`);
+  }
+
+  assert.match(HTML, /class="dailyBrief panel"/);
+
+  assert.match(GAME_SOURCE, /const DAILY_MODIFIERS =/);
+  assert.match(GAME_SOURCE, /function dailyChallengeForDate\(/);
+  assert.match(GAME_SOURCE, /function runRandom\(/);
+  assert.match(GAME_SOURCE, /ionstorm\.daily/);
+  assert.match(GAME_SOURCE, /function shareRunScore\(/);
+  assert.match(GAME_SOURCE, /G\.lastRun =/);
+  assert.match(CSS, /\.runBreakdown/);
+  assert.match(CSS, /\.dailyBrief/);
+});
+
 test('Dreadnought encounters expose readable multi-phase combat states', () => {
   assert.match(HTML, /id="bossStatus"/);
   assert.match(HTML, /id="bossAttack"/);
@@ -100,7 +131,7 @@ test('Dreadnought encounters expose readable multi-phase combat states', () => {
 test('keyboard navigation cannot accidentally launch or activate menu actions', () => {
   assert.match(GAME_SOURCE, /k === 'tab'/);
   assert.match(GAME_SOURCE, /interactiveTarget && \(k === 'enter' \|\| k === ' '\)/);
-  assert.match(GAME_SOURCE, /if \(k === 'enter' \|\| k === ' '\) \{\s*resetRun\(\)/);
+  assert.match(GAME_SOURCE, /if \(k === 'enter' \|\| k === ' '\) \{\s*resetRun\('standard'\)/);
 });
 
 test('hidden overlays and HUD controls use inert focus management', () => {

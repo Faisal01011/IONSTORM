@@ -68,6 +68,11 @@
     return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
   }
 
+  function percentage(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : 0;
+  }
+
   /* =======================================================================
      Profile / board / stats state
      ======================================================================= */
@@ -101,6 +106,15 @@
       wave: nonNegativeInt(entry.wave, 1),
       kills: nonNegativeInt(entry.kills),
       maxCombo: nonNegativeInt(entry.maxCombo),
+      mode: entry.mode === 'daily' ? 'daily' : 'standard',
+      challengeDate: typeof entry.challengeDate === 'string'
+        ? entry.challengeDate.slice(0, 10)
+        : '',
+      time: nonNegativeInt(entry.time),
+      accuracy: percentage(entry.accuracy),
+      damage: nonNegativeInt(entry.damage),
+      elites: nonNegativeInt(entry.elites),
+      systems: nonNegativeInt(entry.systems),
       ship: ['vanguard', 'interceptor', 'bastion'].includes(entry.ship)
         ? entry.ship
         : 'vanguard',
@@ -125,7 +139,14 @@
     'bestCombo',
     'bossKills',
     'asteroidKills',
-    'surgeActivations'
+    'surgeActivations',
+    'dailyRuns',
+    'bestDailyScore',
+    'eliteKills',
+    'totalDamage',
+    'systemsInstalled',
+    'shotsFired',
+    'shotsHit'
   ].forEach(key => {
     STATS[key] = nonNegativeInt(storedStats && storedStats[key]);
   });
@@ -765,6 +786,9 @@
     } else {
       list.innerHTML = BOARD.map((entry, i) => {
         const me = entry.pilotId === PROFILE.pilotId ? ' me' : '';
+        const modeLabel = entry.mode === 'daily'
+          ? 'DAILY ' + (entry.challengeDate || '')
+          : 'STANDARD';
 
         return `
           <div class="panel recordRow${me}">
@@ -776,6 +800,7 @@
                 · KILLS ${entry.kills}
                 · COMBO ×${entry.maxCombo}
                 · ${esc(String(entry.ship || 'vanguard').toUpperCase())}
+                · ${esc(modeLabel)}
               </div>
             </span>
             <span class="recordScore">${window.pad7 ? pad7(entry.score) : entry.score}</span>
@@ -790,13 +815,18 @@
 
     const items = [
       ['RUNS', STATS.runs],
+      ['DAILY RUNS', STATS.dailyRuns],
       ['TOTAL KILLS', STATS.totalKills],
+      ['ELITE KILLS', STATS.eliteKills],
       ['BEST SCORE', window.pad7 ? pad7(STATS.bestScore) : STATS.bestScore],
+      ['DAILY BEST', window.pad7 ? pad7(STATS.bestDailyScore) : STATS.bestDailyScore],
       ['BEST WAVE', STATS.bestWave],
       ['BEST COMBO', '×' + STATS.bestCombo],
       ['BOSS KILLS', STATS.bossKills],
       ['ASTEROIDS', STATS.asteroidKills],
-      ['SURGES', STATS.surgeActivations]
+      ['SURGES', STATS.surgeActivations],
+      ['DAMAGE DEALT', STATS.totalDamage],
+      ['SYSTEMS', STATS.systemsInstalled]
     ];
 
     stats.innerHTML = items.map(([label, value]) => {
@@ -833,10 +863,26 @@
 
   function recordRun() {
     const score = G.score || 0;
+    const daily = G.runMode === 'daily';
+    const accuracy = typeof G.shotsFired === 'number' && G.shotsFired > 0
+      ? Math.round(G.shotsHit / G.shotsFired * 100)
+      : 0;
+    const systems = G.systemsInstalled || 0;
+    const damage = Math.max(0, Math.round(G.damageDealt || 0));
 
     STATS.bestScore = Math.max(STATS.bestScore, score);
     STATS.bestWave = Math.max(STATS.bestWave, G.wave || 0);
     STATS.bestCombo = Math.max(STATS.bestCombo, G.maxCombo || 0);
+    STATS.eliteKills += nonNegativeInt(G.eliteKills);
+    STATS.totalDamage += damage;
+    STATS.systemsInstalled += nonNegativeInt(systems);
+    STATS.shotsFired += nonNegativeInt(G.shotsFired);
+    STATS.shotsHit += nonNegativeInt(G.shotsHit);
+
+    if (daily) {
+      STATS.dailyRuns++;
+      STATS.bestDailyScore = Math.max(STATS.bestDailyScore, score);
+    }
 
     saveStats();
 
@@ -850,6 +896,13 @@
       wave: G.wave || 1,
       kills: G.kills || 0,
       maxCombo: G.maxCombo || 0,
+      mode: daily ? 'daily' : 'standard',
+      challengeDate: daily && G.challenge ? G.challenge.date : '',
+      time: Math.max(0, Math.floor(G.runTime || 0)),
+      accuracy,
+      damage,
+      elites: nonNegativeInt(G.eliteKills),
+      systems: nonNegativeInt(systems),
       ship: (typeof META !== 'undefined' && META.ship) ? META.ship : 'vanguard',
       date: Date.now()
     };

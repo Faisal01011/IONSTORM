@@ -148,6 +148,7 @@ function makeHarness() {
       META,
       SETTINGS,
       SHIPS,
+      DAILY_MODIFIERS,
       RUN_UPGRADES,
       ELITE_TYPES,
       WAVE_EVENTS,
@@ -159,6 +160,12 @@ function makeHarness() {
       initGPU,
       resetRun,
       gameOver,
+      dailyChallengeForDate,
+      dailyBestFor,
+      formatRunTime,
+      runAccuracy,
+      runRandom,
+      shareRunScore,
       resize,
       hud,
       startWave,
@@ -565,6 +572,73 @@ test('projectiles wait for an enemy to enter the playfield before colliding', ()
 
   assert.equal(api.G.enemies.length, 0);
   assert.equal(api.G.bullets.length, 0);
+});
+
+test('daily challenges are stable by UTC date and seed gameplay randomness', () => {
+  const { api } = makeHarness();
+  const first = api.dailyChallengeForDate('2026-08-05');
+  const second = api.dailyChallengeForDate('2026-08-05');
+  const otherDay = api.dailyChallengeForDate('2026-08-06');
+
+  assert.deepEqual(first, second);
+  assert.notEqual(first.seed, otherDay.seed);
+  assert.ok(api.DAILY_MODIFIERS.some(modifier => modifier.id === first.modifier.id));
+
+  api.G.challenge = {
+    ...first,
+    mode: 'daily',
+    rngState: first.seed
+  };
+  const sequence = [api.runRandom(), api.runRandom(), api.runRandom()];
+
+  api.G.challenge.rngState = first.seed;
+  assert.deepEqual(
+    sequence,
+    [api.runRandom(), api.runRandom(), api.runRandom()]
+  );
+});
+
+test('daily deployments expose the seeded mode and persist a local daily best', () => {
+  const { api, context } = makeHarness();
+
+  api.resize();
+  api.resetRun('daily');
+
+  assert.equal(api.G.runMode, 'daily');
+  assert.equal(api.G.challenge.mode, 'daily');
+  assert.equal(api.G.challenge.rngState, api.G.challenge.seed);
+
+  const date = api.G.challenge.date;
+  api.G.score = 4321;
+  api.G.wave = 4;
+  api.gameOver();
+
+  const saved = JSON.parse(context.localStorage.getItem('ionstorm.daily'));
+  assert.equal(saved.bestByDate[date], 4321);
+  assert.equal(api.dailyBestFor(date), 4321);
+});
+
+test('game over publishes a detailed run breakdown', () => {
+  const { api, elements } = makeHarness();
+
+  api.resize();
+  api.resetRun('standard');
+  api.G.runTime = 125.9;
+  api.G.shotsFired = 20;
+  api.G.shotsHit = 13;
+  api.G.damageDealt = 87.4;
+  api.G.eliteKills = 2;
+  api.G.bossesDefeated = 1;
+  api.G.systemsInstalled = 3;
+  api.gameOver();
+
+  assert.equal(elements.get('sTime').textContent, '02:05');
+  assert.equal(elements.get('sAccuracy').textContent, '65%');
+  assert.equal(elements.get('sDamage').textContent, '87');
+  assert.equal(elements.get('sElites').textContent, '2');
+  assert.equal(elements.get('sBosses').textContent, '1');
+  assert.equal(elements.get('sSystems').textContent, '3');
+  assert.equal(api.G.lastRun.accuracy, 65);
 });
 
 test('a tied score is not announced as a new record', () => {
