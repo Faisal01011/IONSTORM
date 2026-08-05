@@ -170,15 +170,20 @@ test('daily challenges and post-run reporting have complete UI contracts', () =>
 test('Dreadnought encounters expose readable multi-phase combat states', () => {
   assert.match(HTML, /id="bossStatus"/);
   assert.match(HTML, /id="bossAttack"/);
+  assert.match(HTML, /id="bossRage"/);
   assert.match(GAME_SOURCE, /const BOSS_PHASES =/);
   assert.match(GAME_SOURCE, /function bossPhaseForHealth\(fraction\)/);
   assert.match(GAME_SOURCE, /function beginBossAttack\(e\)/);
   assert.match(GAME_SOURCE, /function damageBoss\(e, amount\)/);
+  assert.match(GAME_SOURCE, /function spawnBossRelays\(e\)/);
+  assert.match(GAME_SOURCE, /function bossRelayFailure\(e\)/);
+  assert.match(GAME_SOURCE, /RELAY OVERLOAD/);
   assert.match(GAME_SOURCE, /phaseTransitionT/);
   assert.match(GAME_SOURCE, /CORE EXPOSED/);
   assert.match(CSS, /#boss\.coreOpen/);
   assert.match(CSS, /#boss\.telegraph/);
   assert.match(CSS, /#boss\.phaseShift/);
+  assert.match(CSS, /#boss\.relay/);
 });
 
 test('keyboard navigation cannot accidentally launch or activate menu actions', () => {

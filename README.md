@@ -17,7 +17,7 @@ It uses WebGPU when available and falls back to WebGL2 automatically, so the sam
 - WebGPU rendering with a WebGL2 fallback
 - GPU-driven particles, instanced sprites, procedural backgrounds, and screen effects
 - Automatic cannons with pointer, keyboard, and touch movement
-- Escalating enemy waves, asteroids, power-ups, and tiered four-phase Dreadnought bosses
+- Escalating enemy waves, asteroids, power-ups, and aggressive tiered four-phase Dreadnought bosses
 - Elite enemy modifiers, splitter reinforcements, and rotating event waves
 - In-run XP progression with three-choice temporary upgrade drafts
 - UTC-seeded daily challenges with rotating modifiers, local best scores, and shareable results
@@ -70,14 +70,21 @@ shown in the mobile and desktop HUD; pickup effects last only for the current
 deployment.
 
 Every fifth wave culminates in a Dreadnought encounter. Its four phases—Hunter,
-Siege, Breach, and Meltdown—change movement, reinforcements, and attack patterns.
-Later encounters also advance the Dreadnought Mk: hull and damage resistance rise,
-attack cadence and projectile speed increase, reinforcements arrive in larger
-groups, and the exposed-core counter window tightens. Each Mk uses a different
-attack doctrine—Ravager, Warden, Harrier, Swarmcore, or Annihilator—so reaching
-the next boss is a new combat problem rather than a repeated wave-5 loop.
-Attacks are telegraphed in the boss panel before they fire, and each completed
-pattern opens a short **CORE EXPOSED** window for high-damage counterfire.
+Siege, Breach, and Meltdown—now trigger at 70%, 40%, and 15% hull and tighten
+movement, reinforcements, attack cadence, and counterfire windows as the fight
+progresses. Later encounters also advance the Dreadnought Mk: hull and damage
+resistance rise, projectiles accelerate, reinforcements arrive in larger groups,
+and a visible rage curve makes the same phase increasingly dangerous. Each Mk
+uses a different attack doctrine—Ravager, Warden, Harrier, Swarmcore, or
+Annihilator—so reaching the next boss is a new combat problem rather than a
+repeated wave-5 loop.
+
+Bosses periodically expose a rotating **REACTOR RELAY** network. Break every
+relay before its timer expires to clear the arena and stagger the Dreadnought
+for a counterfire window. Ignore the relays and the boss becomes enraged, then
+telegraphs a multi-pattern **RELAY OVERLOAD** volley and summons escorts.
+Attacks are telegraphed in the boss panel, while the HUD shows the current rage
+and relay objective.
 
 Visual and performance preferences are saved locally in the browser.
 The Hangar's **INPUT RESPONSE** slider tunes touch, pointer, and keyboard steering from 75% (precise) to 175% (fast), with 125% as the default.

@@ -64,18 +64,28 @@ frequency, Asteroid Storm increases debris, and Salvage Run improves pickup
 drops. Event state is reset at the start of each wave and does not persist.
 
 Every fifth wave creates one Dreadnought. `BOSS_PHASES` maps its health bands to
-four readable combat profiles: Hunter, Siege, Breach, and Meltdown. The separate
-`bossEncounterProfile()` scales the later Mk encounters: hull, damage resistance,
-projectile speed, attack cadence, reinforcement count, and counter-window length
-all move against the pilot over time. `BOSS_VARIANTS` changes the attack doctrine
-between Ravager, Warden, Harrier, Swarmcore, and Annihilator encounters, so a
-later boss is not just the wave-5 boss with a larger health bar.
+four readable combat profiles: Hunter, Siege, Breach, and Meltdown. The phase
+thresholds are 70%, 40%, and 15%, which front-loads the more dangerous patterns
+instead of leaving most of the fight in the same opening phase. The separate
+`bossEncounterProfile()` scales later Mk encounters: hull, damage resistance,
+projectile speed, attack cadence, movement, reinforcement count, and
+counter-window length all move against the pilot over time. A run-local rage
+value compounds with attack cycles and failed relay objectives, tightening the
+same fight without making the player absorb unavoidable damage. `BOSS_VARIANTS`
+changes the attack doctrine between Ravager, Warden, Harrier, Swarmcore, and
+Annihilator encounters, so a later boss is not just the wave-5 boss with a
+larger health bar.
 
 The boss telegraphs each attack through `telegraphT` before emitting projectiles,
 pauses briefly during `phaseTransitionT`, and exposes its core through `coreOpenT`
-after an attack. `damageBoss()` keeps the body damageable while shielded, increases
-damage during the exposed window, and makes phase changes fair by temporarily
-ignoring hits and clearing the previous bullet pattern.
+after an attack. Periodically, `spawnBossRelays()` adds orbiting reactor nodes
+with a visible countdown. Breaking the complete relay network calls
+`bossRelayBreak()`, clears hostile bullets, and grants a staggered counterfire
+window. Letting the timer expire calls `bossRelayFailure()`, which queues a
+telegraphed overload volley, adds escorts, and increases rage. `damageBoss()`
+keeps the body damageable while shielded, increases damage during exposed and
+staggered windows, and makes phase changes fair by temporarily ignoring hits
+and clearing the previous bullet pattern.
 
 Daily mode is selected from the title screen. `dailyChallengeForDate()` derives
 one UTC date key, a deterministic seed, and one rotating modifier from that key.
