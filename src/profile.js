@@ -41,6 +41,15 @@
     } catch {
       /* Ignore storage failures. */
     }
+
+    if (
+      typeof window.dispatchEvent === 'function' &&
+      typeof CustomEvent !== 'undefined'
+    ) {
+      window.dispatchEvent(new CustomEvent('ionstorm:progress-changed', {
+        detail: { source: key }
+      }));
+    }
   }
 
   function uid() {
@@ -861,7 +870,11 @@
      Run recording
      ======================================================================= */
 
+  let LAST_RECORDED_RUN = null;
+
   function recordRun() {
+    LAST_RECORDED_RUN = null;
+
     const score = G.score || 0;
     const daily = G.runMode === 'daily';
     const accuracy = typeof G.shotsFired === 'number' && G.shotsFired > 0
@@ -907,6 +920,8 @@
       date: Date.now()
     };
 
+    LAST_RECORDED_RUN = { ...entry };
+
     BOARD.push(entry);
 
     BOARD.sort((a, b) => {
@@ -926,6 +941,81 @@
 
     return idx >= 0 ? idx + 1 : null;
   }
+
+  function getProfileSnapshot() {
+    return {
+      profile: { ...PROFILE },
+      board: BOARD.map(entry => ({ ...entry })),
+      stats: { ...STATS }
+    };
+  }
+
+  function applyProfileSnapshot(snapshot = {}) {
+    const incomingProfile = snapshot.profile && typeof snapshot.profile === 'object'
+      ? snapshot.profile
+      : {};
+    const incomingStats = snapshot.stats && typeof snapshot.stats === 'object'
+      ? snapshot.stats
+      : {};
+    const incomingBoard = Array.isArray(snapshot.board) ? snapshot.board : [];
+
+    if (typeof incomingProfile.pilotId === 'string' && incomingProfile.pilotId) {
+      PROFILE.pilotId = incomingProfile.pilotId;
+    }
+
+    PROFILE.callsign = cleanCallsign(incomingProfile.callsign || PROFILE.callsign);
+    PROFILE.createdAt = nonNegativeInt(incomingProfile.createdAt, PROFILE.createdAt);
+
+    BOARD = incomingBoard
+      .filter(entry => entry && typeof entry === 'object')
+      .map(entry => ({
+        id: typeof entry.id === 'string' && entry.id ? entry.id : uid(),
+        pilotId: typeof entry.pilotId === 'string' ? entry.pilotId : PROFILE.pilotId,
+        name: cleanCallsign(entry.name),
+        score: nonNegativeInt(entry.score),
+        wave: nonNegativeInt(entry.wave, 1),
+        kills: nonNegativeInt(entry.kills),
+        maxCombo: nonNegativeInt(entry.maxCombo),
+        mode: entry.mode === 'daily' ? 'daily' : 'standard',
+        challengeDate: typeof entry.challengeDate === 'string'
+          ? entry.challengeDate.slice(0, 10)
+          : '',
+        time: nonNegativeInt(entry.time),
+        accuracy: percentage(entry.accuracy),
+        damage: nonNegativeInt(entry.damage),
+        elites: nonNegativeInt(entry.elites),
+        systems: nonNegativeInt(entry.systems),
+        ship: ['vanguard', 'interceptor', 'bastion'].includes(entry.ship)
+          ? entry.ship
+          : 'vanguard',
+        date: nonNegativeInt(entry.date, Date.now())
+      }))
+      .sort((a, b) => (
+        b.score - a.score ||
+        b.wave - a.wave ||
+        b.kills - a.kills ||
+        a.date - b.date
+      ))
+      .slice(0, 10);
+
+    Object.keys(STATS).forEach(key => {
+      STATS[key] = nonNegativeInt(incomingStats[key]);
+    });
+
+    saveProfileData();
+    saveBoard();
+    saveStats();
+    updateTitleMeta();
+
+    if (G.state === 'records') {
+      renderRecords();
+    }
+  }
+
+  window.ionstormProfile = {
+    getSnapshot: getProfileSnapshot,
+    applySnapshot: applyProfileSnapshot
+  };
 
   /* =======================================================================
      Events
@@ -1075,6 +1165,15 @@
 
     if (window.updateTitleMeta) {
       updateTitleMeta();
+    }
+
+    if (
+      typeof window.dispatchEvent === 'function' &&
+      typeof CustomEvent !== 'undefined'
+    ) {
+      window.dispatchEvent(new CustomEvent('ionstorm:run-ended', {
+        detail: { run: LAST_RECORDED_RUN }
+      }));
     }
   };
 

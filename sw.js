@@ -1,7 +1,8 @@
-const CACHE_NAME = 'ionstorm-shell-v1';
+const CACHE_NAME = 'ionstorm-shell-v2';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './ionstorm-icon.svg',
-  './og-image.png', './src/game.js', './src/profile.js', './src/styles.css'
+  './og-image.png', './src/game.js', './src/profile.js', './src/account-config.js',
+  './src/account.js', './src/styles.css'
 ];
 
 self.addEventListener('install', event => {
