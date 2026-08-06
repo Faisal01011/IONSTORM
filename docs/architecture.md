@@ -1,6 +1,6 @@
 # IONSTORM architecture
 
-IONSTORM is a dependency-free static web game. The repository deliberately has no bundler or framework: the browser loads the root HTML entry point, the source modules, and the generated social preview asset directly. A small service worker adds installability and offline caching without changing the runtime architecture.
+IONSTORM is a dependency-light static web game. The repository deliberately has no bundler or framework: the browser loads the root HTML entry point, the source modules, and the generated social preview asset directly. A small service worker adds installability and offline caching without changing the runtime architecture. Supabase is an optional browser enhancement for authentication and cloud saves; guest mode does not depend on it.
 
 ## Runtime layout
 
@@ -9,12 +9,15 @@ index.html
 ├── src/styles.css       visual system, overlays, HUD, and responsive rules
 ├── src/game.js          renderer, simulation, input, audio, and core progression
 ├── src/profile.js       pilot profile, local records, and statistics add-on
+├── src/account.js       optional Supabase auth and cloud-save adapter
+├── src/account-config.js public client configuration placeholders
 ├── manifest.webmanifest install metadata and standalone display settings
+├── supabase/schema.sql  account tables and RLS policies
 ├── sw.js                cache-first static shell and offline navigation fallback
 └── ionstorm-icon.svg    install and home-screen icon
 ```
 
-`profile.js` is loaded after `game.js` because it extends the core with profile and records screens and wraps selected game lifecycle hooks. The game remains playable when the optional profile layer is unavailable.
+`profile.js` is loaded after `game.js` because it extends the core with profile and records screens and wraps selected game lifecycle hooks. `account.js` is loaded last so it can consume the two narrow bridges exposed by those modules without coupling auth to the renderer internals. The game remains playable when either optional layer is unavailable.
 
 ## Boot sequence
 
@@ -25,6 +28,9 @@ index.html
 5. The title screen is shown and the shared animation loop begins.
 6. The service worker is registered progressively; when the browser supports
    installation, the title screen exposes an install action.
+7. `account.js` creates a non-blocking pilot account panel. If a configured
+   Supabase client restores a session, it merges local and cloud progression;
+   otherwise the title screen remains in guest mode.
 
 The WebGPU path uses embedded WGSL for background, sprite, particle, and compute passes. The fallback uses embedded GLSL ES 3.00 shaders and a CPU-managed particle pool. There are no downloaded models, textures, or game libraries.
 
@@ -114,17 +120,38 @@ Persistent values are intentionally local to the browser:
 | `ionstorm.daily` | local best daily scores keyed by UTC date |
 
 Cosmetic selections are stored inside `ionstorm.meta.cosmetics`; no remote
-account or asset download is required.
+account or asset download is required for guest play.
 
-The local records list is not a server leaderboard and is not tamper-proof. No account or backend is required to play.
+### Optional cloud account
+
+When configured, `account.js` uses the browser Supabase client for email/password
+auth or Google OAuth. It reads and writes only the authenticated pilot's rows:
+
+| Table | Purpose |
+| --- | --- |
+| `profiles` | authenticated callsign |
+| `pilot_saves` | merged meta progression, daily bests, records, and stats snapshot |
+| `runs` | idempotent archive of authenticated pilot runs |
+
+The `game.js` and `profile.js` bridges expose sanitized snapshots and apply
+merged snapshots back into the existing local stores. A first sign-in merges
+the local and remote state instead of replacing either one: highest score,
+scrap, upgrades, achievements, daily bests, and top records are retained.
+Settings remain device-local because sound, quality, and input response are
+personal to the current device. Every table is protected with authenticated
+RLS policies in `supabase/schema.sql`; the client never uses a service-role
+key. The run archive is not anti-cheat validation and must not be presented as
+a tamper-proof global leaderboard.
 
 ## Offline shell
 
-`sw.js` precaches the root HTML, JavaScript, CSS, manifest, icon, and social
-preview. Same-origin GET requests use a cache-first strategy, while failed
-navigation requests fall back to the cached `index.html`. Progression remains
-in browser `localStorage`, so installed/offline play preserves the same local
-pilot profile on that device. Google Fonts are an optional remote enhancement;
+`sw.js` precaches the root HTML, JavaScript, CSS, account adapter, manifest,
+icon, and social preview. Same-origin GET requests use a cache-first strategy,
+while failed navigation requests fall back to the cached `index.html`.
+Progression remains in browser `localStorage`, so installed/offline play
+preserves the same local pilot profile on that device. The Supabase CDN client
+is deliberately not required for guest play; when offline, the cached account
+adapter reports guest mode. Google Fonts are an optional remote enhancement;
 the system font stack keeps the game usable when they are unavailable.
 
 ## Input model

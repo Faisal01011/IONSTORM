@@ -29,7 +29,7 @@
   },
   "scripts": {
     "check": "npm run check:syntax && npm test",
-    "check:syntax": "node --check src/game.js && node --check src/profile.js",
+    "check:syntax": "node --check src/game.js && node --check src/profile.js && node --check src/account-config.js && node --check src/account.js",
     "test": "node --test tests/*.test.js",
     "serve": "python3 -m http.server 4173"
   }

@@ -9,6 +9,9 @@ const ROOT = path.resolve(__dirname, '..');
 const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const GAME_SOURCE = fs.readFileSync(path.join(ROOT, 'src', 'game.js'), 'utf8');
 const PROFILE_SOURCE = fs.readFileSync(path.join(ROOT, 'src', 'profile.js'), 'utf8');
+const ACCOUNT_SOURCE = fs.readFileSync(path.join(ROOT, 'src', 'account.js'), 'utf8');
+const ACCOUNT_CONFIG = fs.readFileSync(path.join(ROOT, 'src', 'account-config.js'), 'utf8');
+const SUPABASE_SCHEMA = fs.readFileSync(path.join(ROOT, 'supabase', 'schema.sql'), 'utf8');
 const CSS = fs.readFileSync(path.join(ROOT, 'src', 'styles.css'), 'utf8');
 const MANIFEST = fs.readFileSync(path.join(ROOT, 'manifest.webmanifest'), 'utf8');
 const SERVICE_WORKER = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
@@ -42,6 +45,31 @@ test('PWA shell exposes install metadata and offline caching', () => {
   assert.match(GAME_SOURCE, /navigator\.serviceWorker\.register\('\.\/sw\.js'/);
   assert.match(GAME_SOURCE, /beforeinstallprompt/);
   assert.match(GAME_SOURCE, /promptEvent\.prompt\(\)/);
+  assert.match(SERVICE_WORKER, /src\/account\.js/);
+  assert.match(SERVICE_WORKER, /src\/account-config\.js/);
+});
+
+test('account sync is optional, RLS-protected, and preserves guest play', () => {
+  assert.match(HTML, /supabase-js@2/);
+  assert.match(HTML, /src\/account-config\.js/);
+  assert.match(HTML, /src\/account\.js/);
+  assert.match(ACCOUNT_SOURCE, /auth\.signUp/);
+  assert.match(ACCOUNT_SOURCE, /auth\.signInWithPassword/);
+  assert.match(ACCOUNT_SOURCE, /auth\.signInWithOAuth/);
+  assert.match(ACCOUNT_SOURCE, /continueAsGuest/);
+  assert.match(ACCOUNT_SOURCE, /mergeSnapshots/);
+  assert.match(ACCOUNT_SOURCE, /pilot_saves/);
+  assert.match(ACCOUNT_SOURCE, /runs/);
+  assert.match(GAME_SOURCE, /window\.ionstormGame =/);
+  assert.match(PROFILE_SOURCE, /window\.ionstormProfile =/);
+  assert.match(PROFILE_SOURCE, /ionstorm:run-ended/);
+  assert.match(SUPABASE_SCHEMA, /alter table public\.pilot_saves enable row level security/);
+  assert.match(SUPABASE_SCHEMA, /to authenticated/);
+  assert.match(SUPABASE_SCHEMA, /auth\.uid\(\)/);
+  assert.doesNotMatch(ACCOUNT_CONFIG, /service_role\s*:/i);
+  assert.doesNotMatch(ACCOUNT_CONFIG, /sb_secret\s*:/i);
+  assert.match(CSS, /#ovAccount/);
+  assert.match(CSS, /\.accountBox/);
 });
 
 test('Hangar exposes achievement-gated cosmetic categories', () => {
@@ -241,6 +269,9 @@ test('repository metadata and source boundaries are production-ready', () => {
     '.github/workflows/quality.yml',
     'src/game.js',
     'src/profile.js',
+    'src/account.js',
+    'src/account-config.js',
+    'supabase/schema.sql',
     'src/styles.css'
   ]) {
     assert.equal(fs.existsSync(path.join(ROOT, file)), true, `missing project file: ${file}`);

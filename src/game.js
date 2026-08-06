@@ -200,6 +200,8 @@ function saveDailyHistory() {
   } catch {
     /* Ignore storage failures. */
   }
+
+  notifyProgressChanged('daily');
 }
 
 function dailyBestFor(date = utcDayKey()) {
@@ -250,6 +252,18 @@ function formatRunTime(seconds) {
 const HI_KEY = 'ionstorm.hi';
 const META_KEY = 'ionstorm.meta';
 const SETTINGS_KEY = 'ionstorm.settings';
+
+function notifyProgressChanged(source = 'local') {
+  if (
+    typeof window === 'undefined' ||
+    typeof window.dispatchEvent !== 'function' ||
+    typeof CustomEvent === 'undefined'
+  ) return;
+
+  window.dispatchEvent(new CustomEvent('ionstorm:progress-changed', {
+    detail: { source }
+  }));
+}
 
 const INPUT_RESPONSE_MIN = 0.75;
 const INPUT_RESPONSE_MAX = 1.75;
@@ -878,6 +892,8 @@ function saveSettings() {
   } catch {
     /* Ignore storage failures. */
   }
+
+  notifyProgressChanged('settings');
 }
 
 /* =========================================================================
@@ -941,7 +957,88 @@ function saveMeta() {
   } catch {
     /* Ignore storage failures. */
   }
+
+  notifyProgressChanged('meta');
 }
+
+/* The account layer consumes this narrow bridge instead of reaching into the
+   renderer's private variables. Settings stay device-local by design. */
+window.ionstormGame = {
+  getSnapshot() {
+    return {
+      highScore: boundedInt(G.hi),
+      meta: {
+        scrap: boundedInt(META.scrap),
+        ship: META.ship,
+        upgrades: { ...META.upgrades },
+        achievements: { ...META.achievements },
+        cosmetics: { ...META.cosmetics }
+      },
+      daily: {
+        bestByDate: { ...DAILY_HISTORY.bestByDate }
+      }
+    };
+  },
+
+  applySnapshot(snapshot = {}) {
+    const incomingMeta = snapshot.meta && typeof snapshot.meta === 'object'
+      ? snapshot.meta
+      : {};
+    const incomingUpgrades = incomingMeta.upgrades || {};
+    const incomingAchievements = incomingMeta.achievements || {};
+    const incomingCosmetics = incomingMeta.cosmetics || {};
+    const incomingDaily = snapshot.daily && typeof snapshot.daily === 'object'
+      ? snapshot.daily
+      : {};
+
+    META.scrap = boundedInt(incomingMeta.scrap);
+    META.ship = SHIPS[incomingMeta.ship] ? incomingMeta.ship : 'vanguard';
+
+    for (const [id, upgrade] of Object.entries(UPGRADES)) {
+      META.upgrades[id] = boundedInt(incomingUpgrades[id], 0, upgrade.max);
+    }
+
+    META.achievements = {};
+
+    for (const id of Object.keys(ACHIEVEMENTS)) {
+      if (incomingAchievements[id] === true) {
+        META.achievements[id] = true;
+      }
+    }
+
+    META.cosmetics = {
+      colors: 'ship',
+      trails: 'ion',
+      engines: 'standard',
+      victories: 'burst'
+    };
+
+    for (const [category, items] of Object.entries(COSMETICS)) {
+      if (items.some(item => item.id === incomingCosmetics[category])) {
+        META.cosmetics[category] = incomingCosmetics[category];
+      }
+    }
+
+    DAILY_HISTORY.bestByDate = {};
+
+    if (incomingDaily.bestByDate && typeof incomingDaily.bestByDate === 'object') {
+      for (const [date, score] of Object.entries(incomingDaily.bestByDate)) {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+          DAILY_HISTORY.bestByDate[date] = boundedInt(score);
+        }
+      }
+    }
+
+    G.hi = boundedInt(snapshot.highScore);
+    saveMeta();
+    saveDailyHistory();
+    updateTitleMeta();
+
+    if (G.state === 'hangar') {
+      renderHangar();
+    }
+  }
+};
 
 function addScrap(amount) {
   if (!amount || amount <= 0) return;

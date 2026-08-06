@@ -8,7 +8,7 @@
 
 IONSTORM is a neon browser arcade shooter built for short, replayable runs. Pilot through escalating enemy waves, break Dreadnought boss encounters, collect scrap, and bring permanent Hangar upgrades into your next deployment.
 
-It uses WebGPU when available and falls back to WebGL2 automatically, so the same game can run across modern desktop and mobile browsers without an account or backend. It can also be installed as a standalone PWA and cached for offline play.
+It uses WebGPU when available and falls back to WebGL2 automatically, so the same game can run across modern desktop and mobile browsers. Guest play remains local and offline-first, while an optional Supabase account syncs progression across devices. It can also be installed as a standalone PWA and cached for offline play.
 
 [![IONSTORM preview](og-image.png)](https://ionstorm.vercel.app)
 
@@ -26,6 +26,8 @@ It uses WebGPU when available and falls back to WebGL2 automatically, so the sam
 - Three ships with distinct speed, hull, shield, and firing profiles
 - Persistent scrap, upgrades, pilot profile, local records, and statistics
 - Achievement-unlocked cosmetics: ship colors, engine trails, engine effects, and victory effects
+- Optional pilot accounts with email/password or Google sign-in
+- Cloud-synced progression with local-to-cloud migration and guest fallback
 - Procedural sound effects and music with accessible mute controls
 - Reduced flash, reduced shake, contrast, low-quality, and input-response settings
 - A responsive interface for desktop, portrait mobile, and landscape mobile play
@@ -112,6 +114,18 @@ On supported browsers, use **INSTALL IONSTORM** on the title screen to add the
 game to your device. The service worker caches the game shell after the first
 successful load, so subsequent launches work without a network connection.
 
+## Optional account sync
+
+IONSTORM does not require an account. A guest pilot can play offline with the
+existing local saves. To enable **SYNC PILOT**, create a Supabase project and
+follow [the account setup guide](docs/SUPABASE.md). The guide creates private
+row-level policies for profiles, cloud saves, and the player's own run archive.
+
+The browser only needs the Supabase project URL and publishable/anon key in
+`src/account-config.js`. Never put a `service_role` or secret key in the game.
+Email/password is supported immediately; Google sign-in also requires enabling
+Google in Supabase Auth and adding the local and production redirect URLs.
+
 ## Browser support
 
 Use a current version of Chrome, Edge, Firefox, or Safari with hardware acceleration enabled. WebGPU is preferred; browsers without a working WebGPU path use the WebGL2 fallback automatically.
@@ -127,7 +141,11 @@ IONSTORM/
 ├── src/
 │   ├── game.js          renderer, simulation, input, audio, and core progression
 │   ├── profile.js       pilot profile, records, and statistics add-on
+│   ├── account.js       optional Supabase auth, migration, and cloud sync
+│   ├── account-config.js public client configuration placeholders
 │   └── styles.css       visual system and responsive interface
+├── supabase/
+│   └── schema.sql       account tables and row-level security policies
 ├── tests/               Node regression tests and repository contracts
 ├── index.html           static entry point and game shell
 ├── manifest.webmanifest install metadata and standalone display settings
@@ -156,10 +174,11 @@ For contribution expectations, browser testing guidance, and the project boundar
 
 ## Scope and roadmap
 
-The current records board is intentionally local to the browser; it is not a global leaderboard and is not tamper-proof. There is no account system, matchmaking, or server-side progression.
+The local records board remains available to guest pilots and is not a global
+leaderboard or tamper-proof competitive score source. Account sync is the
+foundation for cross-device progression; server-validated global leaderboards,
+gamepad input, and richer accessibility remain future milestones.
 
-The next gameplay milestone is gamepad input, followed by richer accessibility
-and input customisation.
 
 ## License
 

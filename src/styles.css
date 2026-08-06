@@ -2577,6 +2577,291 @@ button.buy.max {
 }
 
 /* =========================================================================
+   Account and cloud-save panel
+   ========================================================================= */
+
+#ovAccount {
+  z-index: 90;
+  background:
+    radial-gradient(circle at 50% 22%, rgba(95, 242, 255, .14), transparent 36%),
+    rgba(1, 4, 10, .84);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.accountBox {
+  position: relative;
+  width: min(470px, 100%);
+  max-height: min(880px, 92dvh);
+  overflow: auto;
+  display: grid;
+  gap: 15px;
+  padding: clamp(24px, 5vw, 38px);
+  text-align: center;
+  box-shadow: var(--shadow-panel), 0 0 42px rgba(95, 242, 255, .14);
+  scrollbar-color: rgba(95, 242, 255, .38) rgba(2, 8, 15, .45);
+  scrollbar-width: thin;
+}
+
+.accountTopline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.accountClose {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(143, 180, 201, .3);
+  color: var(--dim);
+  background: rgba(2, 8, 15, .68);
+  font-family: 'Rajdhani';
+  font-size: 1.45rem;
+  line-height: 1;
+  cursor: pointer;
+  clip-path: var(--cham);
+}
+
+.accountClose:hover,
+.accountClose:focus-visible {
+  color: var(--cyan);
+  border-color: var(--cyan);
+  outline: none;
+}
+
+.accountLead {
+  max-width: 390px;
+  margin: 0 auto;
+  color: var(--dim);
+  font-size: .9rem;
+  line-height: 1.45;
+  letter-spacing: .035em;
+}
+
+.accountLeadSmall {
+  font-size: .78rem;
+}
+
+.accountSignedOut,
+.accountSignedIn {
+  display: grid;
+  gap: 13px;
+}
+
+.accountGoogle {
+  width: 100%;
+  color: var(--ink) !important;
+  background: rgba(255, 255, 255, .08) !important;
+  border-color: rgba(255, 255, 255, .28) !important;
+}
+
+.accountGoogle:hover:not(:disabled),
+.accountGoogle:focus-visible {
+  background: rgba(255, 255, 255, .14) !important;
+  border-color: rgba(255, 255, 255, .7) !important;
+}
+
+.accountGoogle span {
+  display: inline-grid;
+  width: 20px;
+  height: 20px;
+  margin-right: 6px;
+  place-items: center;
+  border-radius: 50%;
+  color: #4285f4;
+  background: #fff;
+  font-family: Arial, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.accountDivider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-family: 'Orbitron';
+  font-size: .46rem;
+  letter-spacing: .16em;
+}
+
+.accountDivider::before,
+.accountDivider::after {
+  flex: 1;
+  height: 1px;
+  content: '';
+  background: rgba(95, 220, 255, .16);
+}
+
+.accountForm {
+  display: grid;
+  gap: 10px;
+  text-align: left;
+}
+
+.accountField {
+  display: grid;
+  gap: 5px;
+}
+
+.accountField > span {
+  color: var(--muted);
+  font-family: 'Orbitron';
+  font-size: .46rem;
+  letter-spacing: .16em;
+}
+
+.accountField input {
+  width: 100%;
+  min-height: 46px;
+  padding: .7em .85em;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  background: rgba(2, 8, 15, .78);
+  font-family: 'Rajdhani';
+  font-size: .95rem;
+  letter-spacing: .04em;
+  outline: none;
+  clip-path: var(--cham);
+}
+
+.accountField input::placeholder {
+  color: rgba(143, 180, 201, .48);
+}
+
+.accountField input:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 18px rgba(95, 242, 255, .16);
+}
+
+.accountModeToggle {
+  border: 0;
+  color: var(--cyan);
+  background: transparent;
+  font-family: 'Orbitron';
+  font-size: .52rem;
+  letter-spacing: .12em;
+  cursor: pointer;
+}
+
+.accountModeToggle:hover,
+.accountModeToggle:focus-visible {
+  color: var(--amber);
+  outline: none;
+}
+
+.accountGuest {
+  width: 100%;
+}
+
+.accountIdentity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  text-align: left;
+  border: 1px solid rgba(95, 242, 255, .24);
+  background: rgba(11, 37, 49, .36);
+  clip-path: var(--cham);
+}
+
+.accountIdentityMark {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  color: var(--bg);
+  background: var(--cyan);
+  font-family: 'Orbitron';
+  font-weight: 900;
+  clip-path: var(--cham);
+}
+
+.accountIdentity small,
+.accountIdentity strong {
+  display: block;
+}
+
+.accountIdentity small {
+  color: var(--muted);
+  font-family: 'Orbitron';
+  font-size: .44rem;
+  letter-spacing: .16em;
+}
+
+.accountIdentity strong {
+  margin-top: 4px;
+  color: var(--cyan);
+  font-family: 'Orbitron';
+  font-size: .78rem;
+  letter-spacing: .1em;
+}
+
+.accountSignedInActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.accountSignedInActions .cham {
+  width: 100%;
+  min-width: 0;
+}
+
+.accountStatus {
+  min-height: 1.2em;
+  margin: 0;
+  color: var(--dim);
+  font-family: 'Orbitron';
+  font-size: .5rem;
+  line-height: 1.45;
+  letter-spacing: .12em;
+}
+
+.accountStatus.success {
+  color: var(--cyan);
+}
+
+.accountStatus.warn {
+  color: var(--amber);
+}
+
+.accountStatus.error {
+  color: var(--ember);
+}
+
+.accountFinePrint {
+  margin: 0;
+  color: rgba(143, 180, 201, .58);
+  font-family: 'Orbitron';
+  font-size: .42rem;
+  line-height: 1.5;
+  letter-spacing: .1em;
+}
+
+.accountTitleButton.accountConnected {
+  color: var(--cyan) !important;
+  border-color: rgba(95, 242, 255, .62) !important;
+  background: rgba(11, 53, 68, .65) !important;
+}
+
+@media (max-width: 720px), (max-height: 560px) and (pointer: coarse) {
+  .accountBox {
+    width: 100%;
+    max-height: 100%;
+    padding: 22px 16px;
+  }
+
+  .accountSignedInActions {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================================
    Misc
    ========================================================================= */
 
